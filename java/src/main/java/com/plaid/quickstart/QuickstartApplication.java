@@ -26,6 +26,8 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import java.util.Arrays;
 import java.util.List;
+import Login.LoginForm;
+import com.plaid.InitializeFirestore;
 
 public class QuickstartApplication extends Application<QuickstartConfiguration> {
   // We store the accessToken in memory - in production, store it in a secure
@@ -41,17 +43,21 @@ public class QuickstartApplication extends Application<QuickstartConfiguration> 
   // persistent data store
   public static String transferId;
 
-  private PlaidApi plaidClient;
+  public static PlaidApi plaidClient;
   private ApiClient apiClient;
   public String plaidEnv;
-
+  
+  public static String userID;
+  
   public static void main(final String[] args) throws Exception {
+    InitializeFirestore.initialize();  
     new QuickstartApplication().run(args);
+    LoginForm.main();
   }
 
   @Override
   public String getName() {
-    return "Quickstart";
+    return "AccountAble";
   }
 
   @Override
@@ -123,5 +129,7 @@ public class QuickstartApplication extends Application<QuickstartConfiguration> 
   protected ApiClient apiClient() {
     return apiClient;
   }
+  
+  
 
 }

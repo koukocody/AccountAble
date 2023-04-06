@@ -8,10 +8,10 @@
     <maven>3.0.0</maven>
   </prerequisites>
   <groupId>com.plaid</groupId>
-  <artifactId>quickstart</artifactId>
+  <artifactId>accountable</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>Quickstart</name>
+  <name>AccountAble</name>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -32,6 +32,11 @@
     </dependencies>
   </dependencyManagement>
   <dependencies>
+    <dependency>
+      <groupId>com.google.firebase</groupId>
+      <artifactId>firebase-admin</artifactId>
+      <version>9.1.1</version>
+    </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
@@ -77,6 +82,11 @@
       <artifactId>activation</artifactId>
       <version>1.1.1</version>
     </dependency>
+    <dependency>
+      <groupId>org.netbeans.external</groupId>
+      <artifactId>AbsoluteLayout</artifactId>
+      <version>RELEASE160</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -98,6 +108,18 @@
             <goals>
               <goal>shade</goal>
             </goals>
+            <configuration>
+                <filters>
+                    <filter>
+                        <artifact>*:*</artifact>
+                        <excludes>
+                            <exclude>META-INF/*.SF</exclude>
+                            <exclude>META-INF/*.DSA</exclude>
+                            <exclude>META-INF/*.RSA</exclude>
+                        </excludes>
+                    </filter>
+                </filters>
+            </configuration>           
           </execution>
         </executions>
       </plugin>
