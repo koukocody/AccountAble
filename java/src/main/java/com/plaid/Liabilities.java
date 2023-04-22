@@ -7,23 +7,22 @@ package com.plaid;
 import com.plaid.client.model.LiabilitiesGetRequest;
 import com.plaid.client.model.LiabilitiesGetResponse;
 import com.plaid.client.model.LiabilitiesObject;
-import java.util.List;
 import retrofit2.Response;
+import static com.plaid.quickstart.QuickstartApplication.plaidClient;
+import java.io.IOException;
 
 /**
  *
  * @author cody6
  */
-public class Liabilities {/*
+public class Liabilities {
     
-    public static List<LiabilitiesStreams> getLiabilities() {
+    public static LiabilitiesObject getLiabilities(String accessToken) throws IOException {
         // Retrieve Liabilities data for an Item
-        LiabilitiesGetRequest request = new LiabilitiesGetRequest()
-          .accessToken(accessToken);
-        Response<LiabilitiesGetResponse> response = client()
-          .liabilitiesGet(request)
-          .execute();
-        Liabilities liabilities = response.getLiabilities();
-        List<LiabilitiesStreams> liabilitiesStreams = liabilities.getLiabilitiesStreams();
-    }*/
+        LiabilitiesGetRequest request = new LiabilitiesGetRequest().accessToken(accessToken);
+        Response<LiabilitiesGetResponse> response = plaidClient.liabilitiesGet(request).execute();
+        LiabilitiesObject liabilities = response.body().getLiabilities();
+        
+        return liabilities;
+    }
 }

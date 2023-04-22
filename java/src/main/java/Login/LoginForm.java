@@ -11,6 +11,7 @@ import com.google.cloud.firestore.QuerySnapshot;
 import static com.plaid.InitializeFirestore.db;
 import com.plaid.quickstart.QuickstartApplication;
 import java.awt.event.KeyEvent;
+import java.text.ParseException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -276,11 +277,17 @@ public class LoginForm extends javax.swing.JFrame {
     }//GEN-LAST:event_registrationButtonMouseClicked
 
     private void loginButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginButtonMouseClicked
-        //temporary for testing
+        /////////////////////////////////////////////////////////////////////        
+        ///////////////////////temporary for testing/////////////////////////
         QuickstartApplication.userID = "codyshook94";
         this.setVisible(false);
-        new Client().setVisible(true);
-        //temporary for testing
+        try {
+            new Client().setVisible(true);
+        } catch (InterruptedException | ParseException ex) {
+            Logger.getLogger(LoginForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        ///////////////////////temporary for testing/////////////////////////
+        /////////////////////////////////////////////////////////////////////
         try {
             String temp = "";
             username = usernameEntryField.getText().toLowerCase();
@@ -310,9 +317,7 @@ public class LoginForm extends javax.swing.JFrame {
                     loginHeader.setText("Error - please re-enter information and try again");
                 }      
             }   
-        } catch (InterruptedException ex) {
-            Logger.getLogger(LoginForm.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
+        } catch (InterruptedException | ExecutionException | ParseException ex) {
             Logger.getLogger(LoginForm.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_loginButtonMouseClicked
