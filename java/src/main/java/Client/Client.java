@@ -40,15 +40,20 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
@@ -67,11 +72,24 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartFrame;
+import org.jfree.chart.ChartMouseEvent;
+import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.entity.CategoryItemEntity;
+import org.jfree.chart.entity.CategoryLabelEntity;
+import org.jfree.chart.entity.ChartEntity;
+import org.jfree.chart.entity.PieSectionEntity;
+import org.jfree.chart.labels.StandardPieSectionLabelGenerator;
+import org.jfree.chart.labels.StandardPieToolTipGenerator;
+import org.jfree.chart.labels.StandardXYToolTipGenerator;
+import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PiePlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
@@ -80,6 +98,7 @@ import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.chart.title.LegendTitle;
 import org.jfree.chart.title.TextTitle;
 import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.time.Day;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeries;
@@ -89,6 +108,7 @@ public class Client extends javax.swing.JFrame {
     public static Map<String, String> accountIdAccessToken = new HashMap <>();
     final static Color NORMALTILECOLOR = new java.awt.Color(242, 243, 245);
     final static Color ONCLICKTILECOLOR = new java.awt.Color(75, 75, 75);
+    final int spendingNumberOfWeeks = 26;
     DecimalFormat df = new DecimalFormat("#,###.00");
     double allAccountBalance = 0.00;
     double allAccountsLoans = 0.00;
@@ -104,6 +124,7 @@ public class Client extends javax.swing.JFrame {
     int investmentIteratorXAxis = 0;
     int investmentIteratorYAxis = 0;
     int numberOfSavingsGoals = 0;
+    Map<LocalDate, List<Transaction>> datedTransactions = new TreeMap<LocalDate, List<Transaction>>(Collections.reverseOrder());
     List<String> savingsAccountList = new ArrayList <>();
     Map<String, List<Transaction>> savingsAccountTransactionList = new TreeMap<>(Collections.reverseOrder());
     List<String> depositoryList = Arrays.asList("depository", "checking", "paypal", "prepaid", "cash management", "ebt");
@@ -136,10 +157,29 @@ public class Client extends javax.swing.JFrame {
         try {
             ApiFuture<QuerySnapshot> futureTokens = db.collection("users").document(QuickstartApplication.userID).collection("tokens").get();
             List<QueryDocumentSnapshot> tokens = futureTokens.get().getDocuments();
+            if (tokens.size() == 0) {
+                masterTabPane.setSelectedIndex(1);
+                masterTabPane.setEnabledAt(0, false);
+                masterTabPane.setEnabledAt(2, false);
+                masterTabPane.setEnabledAt(3, false);
+                masterTabPane.setEnabledAt(4, false);
+                masterTabPane.setEnabledAt(5, false);
+                newAccountDialog.setVisible(true);
+            }
             for (DocumentSnapshot  token : tokens) {
                 transactionsList.addAll(Transactions.getTransactions(java.time.LocalDate.now().minusYears(1).toString(), java.time.LocalDate.now().toString(), token.getId()));
                 accountsList.addAll(Accounts.getAccounts(token.getId()));
                 liabilitiesList.add(Liabilities.getLiabilities(token.getId()));
+            }      
+            for (Transaction transaction : transactionsList) {
+                List<Transaction> tempList = new ArrayList<>();
+                LocalDate transactionDate = transaction.getDate();
+                if (datedTransactions.containsKey(transactionDate)) {
+                    datedTransactions.get(transactionDate).add(transaction);
+                } else {
+                    tempList.add(transaction);
+                    datedTransactions.put(transactionDate, tempList);
+                }
             }
         } catch (ExecutionException | ParseException | IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
@@ -159,11 +199,11 @@ public class Client extends javax.swing.JFrame {
         end = System.currentTimeMillis();
         System.out.println("recentTransactionsPopulation end " + (end - start) + " ms");
         
-        System.out.println("start createMonthlyBarChart();");
+        System.out.println("start createHomeTabChart();");
         start = System.currentTimeMillis();
-        createBarChart();
+        createHomeTabChart();
         end = System.currentTimeMillis();
-        System.out.println("createMonthlyBarChart end " + (end - start) + " ms");
+        System.out.println("createHomeTabChart end " + (end - start) + " ms");
         
         try {
             System.out.println("start savingsGoals();");
@@ -180,6 +220,21 @@ public class Client extends javax.swing.JFrame {
         savingsTableAndGraphHistory();
         end = System.currentTimeMillis();
         System.out.println("savingsTransactionsPopulation end " + (end - start) + " ms");
+        
+        System.out.println("start spendingTableAndGraphHistory();");
+        start = System.currentTimeMillis();
+        spendingTableAndGraphHistory();
+        end = System.currentTimeMillis();
+        System.out.println("spendingTableAndGraphHistory end " + (end - start) + " ms");
+        
+        System.out.println("start spendingCategoryChart();");
+        start = System.currentTimeMillis();
+        spendingCategoryChart();
+        end = System.currentTimeMillis();
+        System.out.println("spendingCategoryChart end " + (end - start) + " ms");        
+        
+
+       
     }
 
     
@@ -210,6 +265,11 @@ public class Client extends javax.swing.JFrame {
         addGoalDateFormatLabel2 = new javax.swing.JLabel();
         addGoalEndDateField = new javax.swing.JFormattedTextField(dateFormat);
         addGoalButton = new javax.swing.JButton();
+        newAccountDialog = new javax.swing.JDialog();
+        newAccountPanel = new javax.swing.JPanel();
+        newAccountContinueButton = new javax.swing.JButton();
+        newAccountScrollPane = new javax.swing.JScrollPane();
+        newAccountTextField = new javax.swing.JTextArea();
         masterTabPane = new javax.swing.JTabbedPane();
         homeTab = new javax.swing.JPanel();
         transactionsScrollPane = new javax.swing.JScrollPane();
@@ -237,6 +297,7 @@ public class Client extends javax.swing.JFrame {
         linkButton = new javax.swing.JButton();
         accountScrollPanel = new javax.swing.JScrollPane();
         accountPanel = new javax.swing.JPanel();
+        profileReloadButton = new javax.swing.JButton();
         savingsTab = new javax.swing.JPanel();
         savingsScrollPane = new javax.swing.JScrollPane();
         savingsPanel = new javax.swing.JPanel();
@@ -264,7 +325,12 @@ public class Client extends javax.swing.JFrame {
         investmentsTab = new javax.swing.JPanel();
         investmentsScrollPanel = new javax.swing.JScrollPane();
         investmentsPanel = new javax.swing.JPanel();
-        jPanel7 = new javax.swing.JPanel();
+        spendingTab = new javax.swing.JPanel();
+        spendingGraph = new javax.swing.JPanel();
+        spendingScrollPane = new javax.swing.JScrollPane();
+        spendingTable = new javax.swing.JTable();
+        spendingLabel = new javax.swing.JLabel();
+        spendingPieChart = new javax.swing.JPanel();
         accountPopupTab = new javax.swing.JPanel();
         accountDetailsPopup = new javax.swing.JPanel();
         popupAccountName = new javax.swing.JLabel();
@@ -440,6 +506,50 @@ public class Client extends javax.swing.JFrame {
                 .addComponent(addGoalPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(9, 9, 9))
         );
+
+        newAccountDialog.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        newAccountDialog.setTitle("Welcome!");
+        newAccountDialog.setAlwaysOnTop(true);
+        newAccountDialog.setResizable(false);
+        newAccountDialog.setType(java.awt.Window.Type.POPUP);
+
+        newAccountPanel.setLayout(new java.awt.BorderLayout());
+
+        newAccountContinueButton.setText("Continue");
+        newAccountContinueButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                newAccountContinueButtonMouseClicked(evt);
+            }
+        });
+        newAccountPanel.add(newAccountContinueButton, java.awt.BorderLayout.PAGE_END);
+
+        newAccountScrollPane.setHorizontalScrollBar(null);
+
+        newAccountTextField.setEditable(false);
+        newAccountTextField.setColumns(20);
+        newAccountTextField.setForeground(new java.awt.Color(0, 0, 0));
+        newAccountTextField.setLineWrap(true);
+        newAccountTextField.setRows(5);
+        newAccountTextField.setText("Welcome to AccountAble!\n\n\nBefore continuing, please read the instructions in this window.\n\nTo begin, press the \"Launch Link\" button. This will enable \nyou to connect your AccountAble profile toyour financial institutions, \none at a time.\n\nTo add multiple financial institutions, you must complete this process\nas many times as needed. Be sure to completely follow the prompts\nand close any Link windows only when instructed to do so.\n\nFor the best experience, please wait until all necessary financial\ninstitutions are connected before pressing the \"Reload Profile\" button.\n\n\nThank you for being an AccountAble member!");
+        newAccountTextField.setDisabledTextColor(new java.awt.Color(0, 0, 0));
+        newAccountScrollPane.setViewportView(newAccountTextField);
+
+        newAccountPanel.add(newAccountScrollPane, java.awt.BorderLayout.CENTER);
+
+        javax.swing.GroupLayout newAccountDialogLayout = new javax.swing.GroupLayout(newAccountDialog.getContentPane());
+        newAccountDialog.getContentPane().setLayout(newAccountDialogLayout);
+        newAccountDialogLayout.setHorizontalGroup(
+            newAccountDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(newAccountPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE)
+        );
+        newAccountDialogLayout.setVerticalGroup(
+            newAccountDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(newAccountPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 330, Short.MAX_VALUE)
+        );
+
+        newAccountDialog.setLocation(new java.awt.Point(0, 0));
+        newAccountDialog.setSize(450, 380);
+        newAccountDialog.setLocationRelativeTo(null);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setUndecorated(true);
@@ -732,7 +842,7 @@ public class Client extends javax.swing.JFrame {
 
         masterTabPane.addTab("Home", homeTab);
 
-        linkButton.setText("Launch link");
+        linkButton.setText("Launch Link");
         linkButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         linkButton.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -751,27 +861,41 @@ public class Client extends javax.swing.JFrame {
         accountPanel.setLayout(new java.awt.GridBagLayout());
         accountScrollPanel.setViewportView(accountPanel);
 
+        profileReloadButton.setText("Reload Profile");
+        profileReloadButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                profileReloadButtonMouseClicked(evt);
+            }
+        });
+
         javax.swing.GroupLayout accountTabLayout = new javax.swing.GroupLayout(accountTab);
         accountTab.setLayout(accountTabLayout);
         accountTabLayout.setHorizontalGroup(
-            accountTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            accountTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
             .addGroup(accountTabLayout.createSequentialGroup()
                 .addGap(20, 20, 20)
                 .addComponent(accountScrollPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 1199, Short.MAX_VALUE)
                 .addContainerGap())
             .addGroup(accountTabLayout.createSequentialGroup()
                 .addGap(33, 33, 33)
-                .addComponent(linkButton, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(linkButton, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(profileReloadButton)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         accountTabLayout.setVerticalGroup(
             accountTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(accountTabLayout.createSequentialGroup()
                 .addGap(12, 12, 12)
-                .addComponent(linkButton)
+                .addGroup(accountTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(linkButton)
+                    .addComponent(profileReloadButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(accountScrollPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 651, Short.MAX_VALUE))
         );
+
+        accountScrollPanel.getVerticalScrollBar().setUnitIncrement(16);
+        profileReloadButton.setVisible(false);
 
         masterTabPane.addTab("Accounts", accountTab);
 
@@ -920,11 +1044,12 @@ public class Client extends javax.swing.JFrame {
             }
         });
         TableColumnModel colModel = goalsTable.getColumnModel();
+
         colModel.getColumn(1).setPreferredWidth(40);
         colModel.getColumn(2).setPreferredWidth(40);
         colModel.getColumn(3).setPreferredWidth(40);
-        colModel.getColumn(4).setPreferredWidth(40);
-        colModel.getColumn(5).setPreferredWidth(10);
+        colModel.getColumn(4).setPreferredWidth(10);
+        colModel.getColumn(5).setPreferredWidth(40);
 
         goalsTable.setIntercellSpacing(new java.awt.Dimension(0, 5));
         goalsTable.setShowHorizontalLines(true);
@@ -1118,18 +1243,86 @@ public class Client extends javax.swing.JFrame {
 
         masterTabPane.addTab("Investments", investmentsTab);
 
-        javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
-        jPanel7.setLayout(jPanel7Layout);
-        jPanel7Layout.setHorizontalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1241, Short.MAX_VALUE)
+        spendingGraph.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(75, 75, 75), 2));
+        spendingGraph.setLayout(new javax.swing.BoxLayout(spendingGraph, javax.swing.BoxLayout.PAGE_AXIS));
+
+        spendingScrollPane.setBorder(null);
+
+        spendingTable.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(75, 75, 75)));
+        spendingTable.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        spendingTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Category", "Date", "Merchant", "Amount"
+            }
+        ) {
+            Class[] types = new Class [] {
+                java.lang.Object.class, java.lang.String.class, java.lang.String.class, java.lang.String.class
+            };
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false
+            };
+
+            public Class getColumnClass(int columnIndex) {
+                return types [columnIndex];
+            }
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        spendingTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_NEXT_COLUMN);
+        spendingTable.setEnabled(false);
+        spendingTable.setRowSelectionAllowed(false);
+        spendingTable.setShowHorizontalLines(true);
+        TableColumnModel colSpendingModel = spendingTable.getColumnModel();
+        colSpendingModel.getColumn(1).setPreferredWidth(30);
+        colSpendingModel.getColumn(3).setPreferredWidth(20);
+
+        spendingTable.setIntercellSpacing(new java.awt.Dimension(0, 5));
+        spendingTable.setRowHeight(30);
+        spendingTable.setRowMargin(10);
+        spendingScrollPane.setViewportView(spendingTable);
+
+        spendingLabel.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        spendingLabel.setText("Click on an entry in the graph above to display more details");
+
+        spendingPieChart.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(75, 75, 75), 2));
+        spendingPieChart.setLayout(new javax.swing.BoxLayout(spendingPieChart, javax.swing.BoxLayout.PAGE_AXIS));
+
+        javax.swing.GroupLayout spendingTabLayout = new javax.swing.GroupLayout(spendingTab);
+        spendingTab.setLayout(spendingTabLayout);
+        spendingTabLayout.setHorizontalGroup(
+            spendingTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(spendingTabLayout.createSequentialGroup()
+                .addGap(32, 32, 32)
+                .addGroup(spendingTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(spendingScrollPane)
+                    .addComponent(spendingLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 650, Short.MAX_VALUE)
+                    .addComponent(spendingGraph, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addComponent(spendingPieChart, javax.swing.GroupLayout.DEFAULT_SIZE, 485, Short.MAX_VALUE)
+                .addGap(40, 40, 40))
         );
-        jPanel7Layout.setVerticalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 698, Short.MAX_VALUE)
+        spendingTabLayout.setVerticalGroup(
+            spendingTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(spendingTabLayout.createSequentialGroup()
+                .addGap(32, 32, 32)
+                .addGroup(spendingTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(spendingPieChart, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(spendingGraph, javax.swing.GroupLayout.DEFAULT_SIZE, 341, Short.MAX_VALUE))
+                .addGap(15, 15, 15)
+                .addComponent(spendingLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(spendingScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(39, Short.MAX_VALUE))
         );
 
-        masterTabPane.addTab("Spending", jPanel7);
+        spendingScrollPane.setVisible(false);
+
+        masterTabPane.addTab("Spending", spendingTab);
 
         accountDetailsPopup.setBackground(new java.awt.Color(242, 243, 245));
         accountDetailsPopup.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(75, 75, 75), 2));
@@ -1580,6 +1773,7 @@ public class Client extends javax.swing.JFrame {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
         linkButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        profileReloadButton.setVisible(true);
     }//GEN-LAST:event_linkButtonMouseClicked
 
     private void closeLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_closeLabelMouseClicked
@@ -1722,6 +1916,19 @@ public class Client extends javax.swing.JFrame {
         }  
     }//GEN-LAST:event_addGoalItemDescFieldKeyTyped
 
+    private void profileReloadButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_profileReloadButtonMouseClicked
+        this.dispose();
+        try {
+            new Client().setVisible(true);
+        } catch (InterruptedException | ParseException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_profileReloadButtonMouseClicked
+
+    private void newAccountContinueButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_newAccountContinueButtonMouseClicked
+        newAccountDialog.dispose();
+    }//GEN-LAST:event_newAccountContinueButtonMouseClicked
+
     private void savingsTableAndGraphHistory() throws ParseException {
         // Allocate savings transactions
         for (Transaction transaction : transactionsList) {
@@ -1740,8 +1947,7 @@ public class Client extends javax.swing.JFrame {
         DefaultTableModel model = (DefaultTableModel) savingsQuickHistoryTable.getModel();
         Double savingsBalance = allAccountsSavings;
         TreeMap<LocalDate, Double> savingsGraphData = new TreeMap<>();
-        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
-        int rowCount = 0;
+        int savingsRowCount = 0;
         for (String date : savingsAccountTransactionList.keySet()) {
             for (Transaction transaction : savingsAccountTransactionList.get(date)) {
                 Double transactionAmount = transaction.getAmount();
@@ -1751,9 +1957,9 @@ public class Client extends javax.swing.JFrame {
                 savingsBalance += transactionAmount;
                 if (transactionAmount < 0) {
                     String str = transactionAmount.toString().substring(1);
-                    model.setValueAt("+" + str, rowCount, 1);
+                    model.setValueAt("+" + str, savingsRowCount, 1);
                 }
-                rowCount += 1;
+                savingsRowCount += 1;
             } 
         }
         // Set deposit entries to green
@@ -1788,127 +1994,117 @@ public class Client extends javax.swing.JFrame {
         chart.getTitle().setFont(new java.awt.Font("Segoe UI", 0, 18));
         chart.setBackgroundPaint(NORMALTILECOLOR);
         XYPlot plot = (XYPlot) chart.getPlot();
+        XYToolTipGenerator xyttg = new StandardXYToolTipGenerator(" {1}: {2} ", DateFormat.getDateInstance(), NumberFormat.getCurrencyInstance());
+        plot.getRenderer().setDefaultToolTipGenerator(xyttg);
         NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
         yAxis.setAutoRangeIncludesZero(true);
-        yAxis.setTickUnit(new NumberTickUnit(20000));
         ChartPanel chartPanel = new ChartPanel(chart);
         savingsGraph.setPreferredSize(new Dimension(474, 306));
         savingsGraph.add(chartPanel);
         savingsGraph.revalidate();
         savingsGraph.repaint();
-        
         savingsTab.revalidate();
         savingsTab.repaint();
     }
     
     private void recentTransactionsPopulation() {
         // HOME TAB - Pull all transactions per access token
-        Map<String, List<Transaction>> datedTransactions = new TreeMap<String, List<Transaction>>(Collections.reverseOrder());
-        for (Transaction transaction : transactionsList) {
-            List<Transaction> tempList = new ArrayList<>();
-            String transactionDate = transaction.getDate().toString();
-            if (transaction.getDate().isAfter(java.time.LocalDate.now().minusDays(22)) &&  transaction.getDate().isBefore(java.time.LocalDate.now().plusDays(1))) { // between 3 weeks ago and today
-                if (datedTransactions.containsKey(transactionDate)) {
-                    datedTransactions.get(transactionDate).add(transaction);
-                } else {
-                    tempList.add(transaction);
-                    datedTransactions.put(transactionDate, tempList);
-                }
-            }
-        }
-        for (String date : datedTransactions.keySet()) {
-            // Add and set new date label
-            JLabel newLabel = new JLabel(date);
-            newLabel.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
-            newLabel.setAlignmentX(LEFT_ALIGNMENT);
-            listedTransactionsPanel.add(newLabel);
+        for (LocalDate date : datedTransactions.keySet()) {
+            if (date.isAfter(java.time.LocalDate.now().minusDays(90)) &&  date.isBefore(java.time.LocalDate.now().plusDays(1))) { // between 3 weeks ago and today
+                // Add and set new date label
+                JLabel newLabel = new JLabel(date.toString());
+                newLabel.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+                newLabel.setAlignmentX(LEFT_ALIGNMENT);
+                listedTransactionsPanel.add(newLabel);
 
-            // Add and set new scroll pane container for our table
-            JScrollPane newScrollPanel = new JScrollPane();
-            newScrollPanel.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-            newScrollPanel.setWheelScrollingEnabled(false);
-            // Send scroll events to outer scroll panel for smooth scrolling
-            newScrollPanel.addMouseWheelListener(new MouseWheelListener() { 
-                @Override
-                public void mouseWheelMoved(MouseWheelEvent e) {
-                    transactionsScrollPane.dispatchEvent(e);
-                }
-            });
-            listedTransactionsPanel.add(newScrollPanel);
-
-            // Add and set new JTable
-            JTable newTable = new JTable();
-            newTable.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                },
-                new String [] {
-                    "Merchant", "Category", "Amount"
-                }
-            ) {
-                Class[] types = new Class [] {
-                    java.lang.String.class, java.lang.String.class, java.lang.String.class
-                };
-                boolean[] canEdit = new boolean [] {
-                    false, false, false
-                };
-                public Class getColumnClass(int columnIndex) {
-                    return types [columnIndex];
-                }
-                public boolean isCellEditable(int rowIndex, int columnIndex) {
-                    return canEdit [columnIndex];
-                }
-            });         
-            newTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_NEXT_COLUMN);
-            newLabel.setAlignmentX(LEFT_ALIGNMENT);
-            newTable.setIntercellSpacing(new java.awt.Dimension(5, 5));
-            newTable.setShowHorizontalLines(true);
-            newTable.getTableHeader().setReorderingAllowed(false);
-            newTable.setAutoCreateRowSorter(rootPaneCheckingEnabled);
-            newTable.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
-            newTable.setRowHeight(30);
-            newTable.setRowMargin(10);
-            newTable.setEnabled(false);
-            DefaultTableModel datedModel = (DefaultTableModel) newTable.getModel();
-            int rowCount = 0;
-            // Populate date for all of Date's transactions and add to a table
-            for (Transaction datedTransaction : datedTransactions.get(date)) {
-                rowCount++;
-                // Pull merchant name
-                String merchantName;
-                String nullNameTest = datedTransaction.getMerchantName();
-                if (nullNameTest == null) {
-                    merchantName = datedTransaction.getName();
-                } else {
-                    merchantName = nullNameTest;
-                }
-                // Pull category
-                String trueCategory;
-                List<String> transactionCategory = datedTransaction.getCategory();
-                if (transactionCategory.get(1) == null) {
-                    if (transactionCategory.get(0) == null){
-                        trueCategory = "Category unavailable";
-                    } else {
-                        trueCategory = transactionCategory.get(0);
+                // Add and set new scroll pane container for our table
+                JScrollPane recentTransactionScrollPanel = new JScrollPane();
+                recentTransactionScrollPanel.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+                recentTransactionScrollPanel.setWheelScrollingEnabled(false);
+                // Send scroll events to outer scroll panel for smooth scrolling
+                recentTransactionScrollPanel.addMouseWheelListener(new MouseWheelListener() { 
+                    @Override
+                    public void mouseWheelMoved(MouseWheelEvent e) {
+                        transactionsScrollPane.dispatchEvent(e);
                     }
-                } else {
-                    trueCategory = transactionCategory.get(1);
+                });
+                listedTransactionsPanel.add(recentTransactionScrollPanel);
+
+                // Add and set new JTable
+                JTable recentTransactionTable = new JTable();
+                recentTransactionTable.setModel(new javax.swing.table.DefaultTableModel(
+                    new Object [][] {
+                    },
+                    new String [] {
+                        "Merchant", "Category", "Amount"
+                    }
+                ) {
+                    Class[] types = new Class [] {
+                        java.lang.String.class, java.lang.String.class, java.lang.String.class
+                    };
+                    boolean[] canEdit = new boolean [] {
+                        false, false, false
+                    };
+                    public Class getColumnClass(int columnIndex) {
+                        return types [columnIndex];
+                    }
+                    public boolean isCellEditable(int rowIndex, int columnIndex) {
+                        return canEdit [columnIndex];
+                    }
+                });         
+                recentTransactionTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_NEXT_COLUMN);
+                newLabel.setAlignmentX(LEFT_ALIGNMENT);
+                recentTransactionTable.setIntercellSpacing(new java.awt.Dimension(5, 5));
+                recentTransactionTable.setShowHorizontalLines(true);
+                recentTransactionTable.getTableHeader().setReorderingAllowed(false);
+                recentTransactionTable.setAutoCreateRowSorter(rootPaneCheckingEnabled);
+                recentTransactionTable.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+                recentTransactionTable.setRowHeight(30);
+                recentTransactionTable.setRowMargin(10);
+                recentTransactionTable.setEnabled(false);
+                DefaultTableModel datedModel = (DefaultTableModel) recentTransactionTable.getModel();
+                int rowCount = 0;
+                // Populate date for all of Date's transactions and add to a table
+                for (Transaction datedTransaction : datedTransactions.get(date)) {
+                    rowCount++;
+                    // Pull merchant name
+                    String merchantName;
+                    String nullNameTest = datedTransaction.getMerchantName();
+                    if (nullNameTest == null) {
+                        merchantName = datedTransaction.getName();
+                    } else {
+                        merchantName = nullNameTest;
+                    }
+                    // Pull category
+                    String trueCategory;
+                    List<String> transactionCategory = datedTransaction.getCategory();
+                    if (transactionCategory.get(1) == null) {
+                        if (transactionCategory.get(0) == null){
+                            trueCategory = "Category unavailable";
+                        } else {
+                            trueCategory = transactionCategory.get(0);
+                        }
+                    } else {
+                        trueCategory = transactionCategory.get(1);
+                    }
+                    // Pull transaction amount
+                    String transactionAmount = df.format(datedTransaction.getAmount());
+                    // add transaction to this date's table
+                    Object[] row = { merchantName, trueCategory, transactionAmount };
+                    datedModel.addRow(row);
                 }
-                // Pull transaction amount
-                String transactionAmount = df.format(datedTransaction.getAmount());
-                // add transaction to this date's table
-                Object[] row = { merchantName, trueCategory, transactionAmount };
-                datedModel.addRow(row);
-            }
-            // Adjust tables to only be size of the number of rows
-            Dimension size = newTable.getPreferredSize();
-            int displayRows = Math.min(newTable.getRowCount(), rowCount);
-            size.height = displayRows * newTable.getRowHeight();
-            newTable.setPreferredScrollableViewportSize(size);
-            // Add table to panel
-            newScrollPanel.setViewportView(newTable);
-            // Add spacer after Date's entry
-            listedTransactionsPanel.add(Box.createRigidArea(new Dimension(0,15)));
-        }   
+                // Adjust tables to only be size of the number of rows
+                Dimension size = recentTransactionTable.getPreferredSize();
+                int displayRows = Math.min(recentTransactionTable.getRowCount(), rowCount);
+                size.height = displayRows * recentTransactionTable.getRowHeight();
+                recentTransactionTable.setPreferredScrollableViewportSize(size);
+                // Add table to panel
+                recentTransactionScrollPanel.setSize(size);
+                recentTransactionScrollPanel.setViewportView(recentTransactionTable);
+                // Add spacer after Date's entry
+                listedTransactionsPanel.add(Box.createRigidArea(new Dimension(0,15)));
+            }   
+        }
     }
   
     private void accountPanelPopulation() {
@@ -2348,7 +2544,7 @@ public class Client extends javax.swing.JFrame {
         }
     }
     
-    public void savingsGoals() throws InterruptedException, ExecutionException {
+    private void savingsGoals() throws InterruptedException, ExecutionException {
         // Keep savings goals in database, display on client opening
         ApiFuture<QuerySnapshot> future = db.collection("users").document(QuickstartApplication.userID).collection("goals").get();
         List<QueryDocumentSnapshot> goals = future.get().getDocuments();
@@ -2371,20 +2567,9 @@ public class Client extends javax.swing.JFrame {
         actualAmountAllocationLabel.setText("$" + df.format(allAccountsSavings));
         goalsAllocation(goalsAllocationPanel, allAccountsSavings, allocatedSavings);
     }
-       
-    public DefaultCategoryDataset createDataset(int numberOfMonths) {
-        String accountSubType = "";
-        String accountId = "";
-        List<String> accountTypeList = Arrays.asList("checking", "savings", "credit card");
-        List<String> accountIdList = new ArrayList <>(); 
-        // remove acocunts that arent checking, saving, or credit card
-        for (AccountBase account : accountsList) {
-            accountSubType = account.getSubtype().getValue();
-            if (accountTypeList.contains(accountSubType)) {
-                accountId = account.getAccountId();
-                accountIdList.add(accountId);
-            }
-        }
+
+    private void createHomeTabChart() {
+        final int numberOfMonths = 6;
         // Get monthly value of desired months
         Map<String, Double[]> monthlyTotals = new LinkedHashMap<String, Double[]>();  // { incoming[0], outgoing[1] }
         String[] months = new String[numberOfMonths];
@@ -2397,7 +2582,7 @@ public class Client extends javax.swing.JFrame {
         }
         // Pull transaction amounts for incoming and outgoing monies
         for (Transaction transaction : transactionsList) {
-            if (accountIdList.contains(transaction.getAccountId())) {
+            //if (accountIdList.contains(transaction.getAccountId())) {
                 String transactionDate = (transaction.getDate().withDayOfMonth(1)).toString();
                 Double transactionAmount = transaction.getAmount();
                 // check transDate to see if within desired range, will add to monthlyTotals map
@@ -2418,7 +2603,7 @@ public class Client extends javax.swing.JFrame {
                         break;
                     }
                 }
-            }
+            //}
         }
         // fill out dataset
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -2429,12 +2614,7 @@ public class Client extends javax.swing.JFrame {
             dataset.addValue(totals[0] * -1, "Income", yAxisName);
             dataset.addValue(totals[1], "Spending", yAxisName);
         }
-        return dataset;
-    }
 
-    public void createBarChart() {
-        final int numberOfMonths = 6;
-        DefaultCategoryDataset dataset = createDataset(numberOfMonths);
         JFreeChart chart  = ChartFactory.createBarChart("Income vs. Spending","Month", "Amount (in USD)", dataset,PlotOrientation.VERTICAL,true, true,false);
         chart.getTitle().setFont(new java.awt.Font("Segoe UI", 0, 18));
         chart.addSubtitle(new TextTitle("Past " + numberOfMonths + " Months"));
@@ -2453,6 +2633,239 @@ public class Client extends javax.swing.JFrame {
         incomeAndExpenseGraph.repaint();
     }
     
+    private void spendingTableAndGraphHistory() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        Map<LocalDate, List<Transaction>> weeklyTransactions = new TreeMap<>(Collections.reverseOrder());
+        LocalDate today = LocalDate.now().minusWeeks(spendingNumberOfWeeks);
+        
+        // Create a list of weekly periods as per spendingNumberOfWeeks
+        for (int i = 0; i < spendingNumberOfWeeks; i++) {
+            DayOfWeek firstDayOfWeek = WeekFields.of(Locale.getDefault()).getFirstDayOfWeek();
+            LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(firstDayOfWeek));
+            DayOfWeek lastDayOfWeek = firstDayOfWeek.plus(6);
+            LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(lastDayOfWeek));
+            today = today.plusWeeks(1);
+            Double weeklyAmount = 0.00;
+           // If transaction is within weekly period, is an outgoing transaction, and is not a credit card payment, add to weekly transaction map.
+            for (Map.Entry<LocalDate, List<Transaction>> entry : datedTransactions.entrySet()) {
+                if (entry.getKey().isAfter(startOfWeek) && entry.getKey().isBefore(endOfWeek)) {
+                    List<Transaction> tempList = new ArrayList<>();
+                    for (Transaction transaction : entry.getValue()) {
+                        List<String> tempCategory = transaction.getCategory();
+                        if (transaction.getAmount() > 0 && !tempCategory.get(1).equalsIgnoreCase("credit card")) { // removes incoming transactions, and payments to credit cards (redundant)
+                            weeklyAmount = weeklyAmount + transaction.getAmount(); 
+                            tempList.add(transaction);
+                        }
+                    }
+                    if (weeklyTransactions.containsKey(startOfWeek)) {
+                        weeklyTransactions.get(startOfWeek).addAll(tempList);
+                    } else {
+                        weeklyTransactions.put(startOfWeek, tempList);
+                    }
+                }
+            }
+            dataset.addValue(weeklyAmount, "Spending", startOfWeek.toString());          
+        }
+        
+        // Create bar chart
+        JFreeChart chart  = ChartFactory.createBarChart("Weekly Spending", null, "Amount (in USD)", dataset, PlotOrientation.VERTICAL, false, true, false);
+        chart.getTitle().setFont(new java.awt.Font("Segoe UI", 0, 18));
+        chart.addSubtitle(new TextTitle("Past " + spendingNumberOfWeeks + " Weeks"));
+        chart.setBackgroundPaint(NORMALTILECOLOR);
+        CategoryPlot plot = chart.getCategoryPlot();
+        ((BarRenderer) plot.getRenderer()).setBarPainter(new StandardBarPainter());
+        CategoryItemRenderer cir = plot.getRenderer();
+        cir.setSeriesPaint(0, new Color(178,34,34)); // spending
+        CategoryAxis domainAxis = plot.getDomainAxis(); 
+        domainAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);  
+        ChartPanel chartPanel = new ChartPanel(chart);
+        
+        // Add mouse listeners to chart to display details of a weekly period
+        chartPanel.addChartMouseListener(new ChartMouseListener() {
+            @Override
+            public void chartMouseClicked(ChartMouseEvent event) {
+                ChartEntity entity = event.getEntity();
+                LocalDate date = null;
+                if (entity instanceof CategoryItemEntity) { //CategoryLabelEntity
+                    CategoryItemEntity itemEntity = (CategoryItemEntity) entity;
+                    date = LocalDate.parse(itemEntity.getColumnKey().toString());
+                }
+                else if (entity instanceof CategoryLabelEntity) { //CategoryLabelEntity
+                    CategoryLabelEntity labelEntity = (CategoryLabelEntity) entity;
+                    date = LocalDate.parse(labelEntity.getKey().toString());                  
+                }                
+                if (date != null) {
+                    DefaultTableModel model = (DefaultTableModel) spendingTable.getModel();
+                    model.setRowCount(0);
+                    int spendingRowCount = 0;
+                    if (weeklyTransactions.get(date) != null) {
+                        for (Transaction transaction : weeklyTransactions.get(date)) {
+                            String trueCategory = "Category unavailable";
+                            List<String> transactionCategory = transaction.getCategory();
+                            if (transactionCategory.size() != 0) {
+                                trueCategory = transactionCategory.get(transactionCategory.size() - 1);
+                            }
+                            String merchantName;
+                            String nullNameTest = transaction.getMerchantName();
+                            if (nullNameTest == null) {
+                                merchantName = transaction.getName();
+                            } else {
+                                merchantName = nullNameTest;
+                            }
+                            Double transactionAmount = transaction.getAmount();
+                            Object[] row = { trueCategory, transaction.getDate().toString(), merchantName, df.format(transactionAmount) };
+                            model.addRow(row);
+                            spendingRowCount += 1;   
+                        }
+                    }
+                    Dimension size = spendingTable.getPreferredSize();
+                    int displayRows = Math.min(spendingTable.getRowCount(), spendingRowCount);
+                    size.height = displayRows * spendingTable.getRowHeight();
+                    spendingTable.setPreferredScrollableViewportSize(size);
+                    if (spendingRowCount == 0) {
+                        spendingScrollPane.setVisible(false);
+                        spendingLabel.setText("No outgoing transactions from " + date + " to " + date.plusDays(6));
+                    } else {
+                        spendingScrollPane.setVisible(true);
+                        spendingLabel.setText("Details from " + date + " to " + date.plusDays(6));
+                    }
+                }
+                else {
+                    spendingScrollPane.setVisible(false);
+                    spendingLabel.setText("Click an entry in the graph above to display more details");
+                }          
+            }
+            
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////// Possible addition - highlight entity on hover //////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            @Override
+            public void chartMouseMoved(ChartMouseEvent event) {
+                ChartEntity entity = event.getEntity();
+                if (entity instanceof CategoryItemEntity) { //CategoryLabelEntity
+                }
+            }
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+        });
+        spendingGraph.setPreferredSize(new Dimension(650, 300));
+        spendingGraph.add(chartPanel);
+        spendingGraph.revalidate();
+        spendingGraph.repaint();
+        spendingTable.revalidate();
+        spendingTable.repaint(); 
+    }
+    
+    private void spendingCategoryChart () {
+        // Create map of category + transactions
+        LocalDate todayMinusSpendingNumberOfWeeks = LocalDate.now().minusWeeks(spendingNumberOfWeeks);
+        DayOfWeek firstDayOfWeek = WeekFields.of(Locale.getDefault()).getFirstDayOfWeek();
+        LocalDate startDate = todayMinusSpendingNumberOfWeeks.with(TemporalAdjusters.previousOrSame(firstDayOfWeek));
+        Map<String, List<Transaction>> spendingTransactionsByCategory = new TreeMap<>();
+        for (Map.Entry<LocalDate, List<Transaction>> entry : datedTransactions.entrySet()) {
+            if (entry.getKey().isAfter(startDate.minusDays(1))) {
+                for (Transaction transaction : entry.getValue()) {
+                    List<String> categoryList = transaction.getCategory();
+                    if (transaction.getAmount() > 0 && !categoryList.get(1).equalsIgnoreCase("credit card")) { // removes incoming transactions, and payments to credit cards (redundant)
+                        List<Transaction> tempList = new ArrayList <>();
+                        tempList.add(transaction);
+                        if (spendingTransactionsByCategory.containsKey(categoryList.get(0))) {
+                            spendingTransactionsByCategory.get(categoryList.get(0)).addAll(tempList);
+                        } else {
+                            spendingTransactionsByCategory.put(categoryList.get(0), tempList);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Read category map and add to dataset
+        DefaultPieDataset dataset = new DefaultPieDataset(); 
+        Map<String, Map<String, Double>> categoryMap = new TreeMap<>();
+        // map of highest level category : [map of most specific category : amount]
+        for (Map.Entry<String, List<Transaction>> entry : spendingTransactionsByCategory.entrySet()) {
+            Map<String, Double> subcategoryMap = new TreeMap<>();
+            Double categoryAmount = 0.00;
+            for (Transaction transaction : entry.getValue()) {
+                List<String> categoryList = transaction.getCategory();
+                int size = categoryList.size();
+                // get category amount and update total for dataset
+                categoryAmount = categoryAmount + transaction.getAmount();
+                // get subcategory tied to category and update amount within subcategory map
+                String subcategory = categoryList.get(size - 1);
+                Double subcategoryAmount = transaction.getAmount();
+                if (subcategoryMap.containsKey(subcategory)) {
+                    Double existingAmount = subcategoryMap.get(subcategory);
+                    subcategoryMap.put(subcategory, subcategoryAmount + existingAmount);
+                } else {
+                    subcategoryMap.put(subcategory, subcategoryAmount);
+                }
+            }
+            dataset.setValue(entry.getKey(), categoryAmount);
+            categoryMap.put(entry.getKey(), subcategoryMap);
+        }
+        
+        // Create category chart
+        JFreeChart chart = ChartFactory.createPieChart("Spending Categories", dataset, true, true, false);
+        chart.setBackgroundPaint(NORMALTILECOLOR);
+        chart.getTitle().setFont(new java.awt.Font("Segoe UI", 0, 18));
+        chart.addSubtitle(new TextTitle("Past " + spendingNumberOfWeeks + " Weeks"));
+        PiePlot plot = (PiePlot) chart.getPlot();
+        plot.setLabelBackgroundPaint(Color.WHITE);
+        ChartPanel chartPanel = new ChartPanel(chart);
+        StandardPieToolTipGenerator stip = new StandardPieToolTipGenerator("{0}: ${1}", new DecimalFormat("#,###.00"), new DecimalFormat("0.0%"));
+        plot.setToolTipGenerator(stip);
+        StandardPieSectionLabelGenerator slbl = new StandardPieSectionLabelGenerator(" {0} {2} ", new DecimalFormat("#,##0"), new DecimalFormat("0.0%"));
+        plot.setLabelGenerator(slbl);
+        chartPanel.addChartMouseListener(new ChartMouseListener() {
+            @Override
+            public void chartMouseMoved(ChartMouseEvent event) {
+                // highlight subsection on hover
+            }
+            @Override
+            public void chartMouseClicked(ChartMouseEvent event) {
+                // Open new pie chart window with a further categories breakdown
+                ChartEntity entity = event.getEntity();
+                if (entity instanceof PieSectionEntity) { 
+                    DefaultPieDataset popupDataset = new DefaultPieDataset(); 
+                    for (Map.Entry<String, Map<String, Double>> category : categoryMap.entrySet()) {
+                        if (((PieSectionEntity) entity).getSectionKey().equals(category.getKey())) {
+                            for (Map.Entry<String, Double> subcategory : category.getValue().entrySet()) {
+                                popupDataset.setValue(subcategory.getKey(), subcategory.getValue());
+                            }
+                        }
+                    }
+                    
+                    // Create new chart popup
+                    JFreeChart popupChart = ChartFactory.createPieChart("Category Breakdown", popupDataset, true, true, false);
+                    popupChart.setBackgroundPaint(NORMALTILECOLOR);
+                    popupChart.getTitle().setFont(new java.awt.Font("Segoe UI", 0, 18));
+                    PiePlot popupPlot = (PiePlot) popupChart.getPlot();
+                    popupPlot.setLabelBackgroundPaint(Color.WHITE);
+                    ChartPanel popupChartPanel = new ChartPanel(popupChart);
+                    StandardPieToolTipGenerator stipPopup = new StandardPieToolTipGenerator("{0}: ${1}", new DecimalFormat("#,###.00"), new DecimalFormat("0.0%"));
+                    popupPlot.setToolTipGenerator(stipPopup);
+                    StandardPieSectionLabelGenerator slblPopup = new StandardPieSectionLabelGenerator(" {0} {2} ", new DecimalFormat("#,##0"), new DecimalFormat("0.0%"));
+                    popupPlot.setLabelGenerator(slblPopup);
+                    ChartFrame frame = new ChartFrame("Category Breakdown", popupChart);
+                    frame.setSize(600, 450); 
+                    frame.setLocationRelativeTo(null);
+                    frame.setVisible(true); 
+                }
+            }
+        });
+        spendingPieChart.setPreferredSize(new Dimension(485, 340));
+        spendingPieChart.add(chartPanel);
+        spendingPieChart.revalidate();
+        spendingPieChart.repaint();        
+    }
+    
     /**
      * @param args the command line arguments
      */
@@ -2469,15 +2882,11 @@ public class Client extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Client.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Client.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Client.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(Client.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
+        
         //</editor-fold>
 
         /* Create and display the form */
@@ -2492,6 +2901,7 @@ public class Client extends javax.swing.JFrame {
             }
         });
     }
+    
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel accountDetailsPopup;
@@ -2552,7 +2962,6 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLayeredPane jLayeredPane1;
     private javax.swing.JLayeredPane jLayeredPane2;
-    private javax.swing.JPanel jPanel7;
     private javax.swing.JButton linkButton;
     private javax.swing.JPanel listedTransactionsPanel;
     private javax.swing.JLabel loansLabel;
@@ -2571,6 +2980,11 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JLabel mortgageLabel8;
     private javax.swing.JLabel mortgageLabel9;
     private javax.swing.JPanel mortgageLayoutPanel;
+    private javax.swing.JButton newAccountContinueButton;
+    private javax.swing.JDialog newAccountDialog;
+    private javax.swing.JPanel newAccountPanel;
+    private javax.swing.JScrollPane newAccountScrollPane;
+    private javax.swing.JTextArea newAccountTextField;
     private javax.swing.JButton payBillButton;
     private javax.swing.JLabel popupAccountMaskedNumber;
     private javax.swing.JLabel popupAccountName;
@@ -2580,6 +2994,7 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JLabel popupDueDate;
     private javax.swing.JLabel popupMinPayment;
     private javax.swing.JLabel popupSeperatorLabel;
+    private javax.swing.JButton profileReloadButton;
     private javax.swing.JLabel recentTransactionsLabel;
     private javax.swing.JButton saveGoalEditsButton;
     private javax.swing.JPanel savingsGraph;
@@ -2591,6 +3006,12 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JScrollPane savingsScrollPane;
     private javax.swing.JPanel savingsTab;
     private javax.swing.JPanel savingsTile;
+    private javax.swing.JPanel spendingGraph;
+    private javax.swing.JLabel spendingLabel;
+    private javax.swing.JPanel spendingPieChart;
+    private javax.swing.JScrollPane spendingScrollPane;
+    private javax.swing.JPanel spendingTab;
+    private javax.swing.JTable spendingTable;
     private javax.swing.JPanel studentCard;
     private javax.swing.JLabel studentLabel1;
     private javax.swing.JLabel studentLabel10;
