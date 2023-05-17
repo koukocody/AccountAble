@@ -8,7 +8,6 @@ Using https:
 
 ```bash
 git clone https://github.com/koukocody/AccountAble
-cd AccountAble
 ```
 
 #### Special instructions for Windows
