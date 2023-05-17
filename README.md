@@ -8,7 +8,7 @@ Using https:
 
 ```bash
 git clone https://github.com/koukocody/AccountAble
-cd quickstart
+cd AccountAble
 ```
 
 #### Special instructions for Windows
@@ -49,7 +49,6 @@ Run the start.sh script found in \AccountAble\java\start.sh
 
 In Sandbox, you can log in to any supported institution (except Capital One) using `user_good` as the username and `pass_good` as the password. If prompted to enter a 2-factor authentication code, enter `1234`.
 
-In Development or Production, use real-life credentials.
 
 
 [quickstart]: https://plaid.com/docs/quickstart
