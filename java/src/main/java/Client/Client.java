@@ -2029,8 +2029,7 @@ public class Client extends javax.swing.JFrame {
             try (PrintWriter stdin = new PrintWriter(p.getOutputStream())) {
                 stdin.println("npx kill-port 3000");
                 stdin.println("set REACT_APP_USER_ID=" + QuickstartApplication.userID);
-                stdin.println("set REACT_APP_USER_ID");
-                stdin.println("cd C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\frontend");
+                stdin.println("cd ..\\frontend");
                 stdin.println("npm start");
             }
             TimeUnit.SECONDS.sleep(6);  // Gives time for the npm script to run and open the html Link Launch
