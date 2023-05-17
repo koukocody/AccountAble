@@ -5,6 +5,24 @@ import Button from "plaid-threads/Button";
 import Context from "../../Context";
 import {Products} from "plaid";
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, collection, addDoc, getDoc } from "firebase/firestore";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCkjWrN3U0e6w_0mNUOrfNBu3R6NeM3VFg",
+  authDomain: "accountable-a55a6.firebaseapp.com",
+  projectId: "accountable-a55a6",
+  storageBucket: "accountable-a55a6.appspot.com",
+  messagingSenderId: "155794505967",
+  appId: "1:155794505967:web:4594f0fa4e5cc7e3b1db1a"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const firestore = getFirestore(app);
+
 const Link = () => {
   const { linkToken, isPaymentInitiation, dispatch } = useContext(Context);
 
@@ -30,7 +48,7 @@ const Link = () => {
           });
           return;
         }
-        const data = await response.json();
+        const data = await response.json();     
         dispatch({
           type: "SET_STATE",
           state: {
@@ -39,6 +57,18 @@ const Link = () => {
             isItemAccess: true,
           },
         });
+
+
+
+        // ADDS TO PATH "users" - UNIQUE USERID - "tokens" -(NEW) ACCESS TOKEN WITH FIELD ID "item_Id"
+        // doc - (database, path to a collection, new document name)
+        const userID = process.env.REACT_APP_USER_ID;
+        const docRef = doc(firestore, 'users/' + userID + '/tokens', data.access_token);
+        const data10 = {
+            item_Id: data.item_id
+        };
+        const tryDoc = setDoc(docRef, data10);
+
       };
 
       // 'payment_initiation' products do not require the public_token to be exchanged for an access_token.
@@ -77,7 +107,7 @@ const Link = () => {
 
   return (
     <Button type="button" large onClick={() => open()} disabled={!ready}>
-      Launch Link
+      Launch Plaid Link
     </Button>
   );
 };
@@ -85,3 +115,5 @@ const Link = () => {
 Link.displayName = "Link";
 
 export default Link;
+
+

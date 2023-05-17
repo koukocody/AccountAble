@@ -22,52 +22,26 @@ const Header = () => {
 
   return (
     <div className={styles.grid}>
-      <h3 className={styles.title}>Plaid Quickstart</h3>
+      <h3 className={styles.title}>AccountAble</h3>
 
       {!linkSuccess ? (
         <>
           <h4 className={styles.subtitle}>
-            A sample end-to-end integration with Plaid
+            Partnered with Plaid to bring you quick and secure connections to your financial institutions.
           </h4>
           <p className={styles.introPar}>
-            The Plaid flow begins when your user wants to connect their bank
-            account to your app. Simulate this by clicking the button below to
-            launch Link - the client-side component that your users will
-            interact with in order to link their accounts to Plaid and allow you
-            to access their accounts via the Plaid API.
+            To create a connection between AccountAble and your financial institution of choice, please click the button below. This will launch Plaid Link - a secure method of authorizing AccountAble access to your financial data. You choose what AccountAble can and can not see. This process will need to be repeated for every financial institution you wish to connect to AccountAble.
           </p>
           {/* message if backend is not running and there is no link token */}
           {!backend ? (
             <Callout warning>
-              Unable to fetch link_token: please make sure your backend server
-              is running and that your .env file has been configured with your
-              <code>PLAID_CLIENT_ID</code> and <code>PLAID_SECRET</code>.
+              Unable to fetch link_token...
             </Callout>
           ) : /* message if backend is running and there is no link token */
           linkToken == null && backend ? (
             <Callout warning>
               <div>
-                Unable to fetch link_token: please make sure your backend server
-                is running and that your .env file has been configured
-                correctly.
-              </div>
-              <div>
-                If you are on a Windows machine, please ensure that you have
-                cloned the repo with{" "}
-                <InlineLink
-                  href="https://github.com/plaid/quickstart#special-instructions-for-windows"
-                  target="_blank"
-                >
-                  symlinks turned on.
-                </InlineLink>{" "}
-                You can also try checking your{" "}
-                <InlineLink
-                  href="https://dashboard.plaid.com/activity/logs"
-                  target="_blank"
-                >
-                  activity log
-                </InlineLink>{" "}
-                on your Plaid dashboard.
+                Unable to fetch link_token...
               </div>
               <div>
                 Error Code: <code>{linkTokenError.error_code}</code>
@@ -115,14 +89,7 @@ const Header = () => {
             <>
             {isItemAccess ? (
                 <h4 className={styles.subtitle}>
-                  Congrats! By linking an account, you have created an{" "}
-                  <InlineLink
-                      href="http://plaid.com/docs/quickstart/glossary/#item"
-                      target="_blank"
-                  >
-                    Item
-                  </InlineLink>
-                  .
+                  Congrats! You have now linked an account!
                 </h4>
             ) : (
                 <h4 className={styles.subtitle}>
@@ -131,21 +98,9 @@ const Header = () => {
                   </Callout>
                 </h4>
             )}
-            <div className={styles.itemAccessContainer}>
-              <p className={styles.itemAccessRow}>
-                <span className={styles.idName}>item_id</span>
-                <span className={styles.tokenText}>{itemId}</span>
-              </p>
-
-              <p className={styles.itemAccessRow}>
-                <span className={styles.idName}>access_token</span>
-                <span className={styles.tokenText}>{accessToken}</span>
-              </p>
-            </div>
             {isItemAccess && (
                 <p className={styles.requests}>
-                  Now that you have an access_token, you can make all of the
-                  following requests:
+                    You may now close this webpage and return to the AccountAble app. If you need to connect to additional financial institutions, please repeat this process.
                 </p>
             )}
           </>

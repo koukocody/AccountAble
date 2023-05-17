@@ -192,7 +192,7 @@
           <Properties>
             <Property name="horizontalAlignment" type="int" value="0"/>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-              <Connection code="new javax.swing.ImageIcon(&quot;C:\\Users\\cody6\\Documents\\NetBeansProjects\\quickstart\\java\\src\\main\\java\\Login\\icons8_Account_40px.png&quot;)" type="code"/>
+              <Connection code="new javax.swing.ImageIcon(&quot;C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\icons8_Account_40px.png&quot;)" type="code"/>
             </Property>
           </Properties>
         </Component>
@@ -212,7 +212,7 @@
           <Properties>
             <Property name="horizontalAlignment" type="int" value="0"/>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-              <Connection code="new javax.swing.ImageIcon(&quot;C:\\Users\\cody6\\Documents\\NetBeansProjects\\quickstart\\java\\src\\main\\java\\Login\\icons8_Invisible_30px_1.png&quot;)" type="code"/>
+              <Connection code="new javax.swing.ImageIcon(&quot;C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\icons8_Invisible_30px_1.png&quot;)" type="code"/>
             </Property>
           </Properties>
           <Events>

@@ -10,12 +10,22 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import static com.plaid.InitializeFirestore.db;
 import com.plaid.quickstart.QuickstartApplication;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.SwingWorker;
+import javax.swing.WindowConstants;
 
 /**
  *
@@ -98,7 +108,7 @@ public class LoginForm extends javax.swing.JFrame {
         usernameLabel.setFocusable(false);
 
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel6.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\quickstart\\java\\src\\main\\java\\Login\\icons8_Account_40px.png"));
+        jLabel6.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\icons8_Account_40px.png"));
 
         passwordLabel.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         passwordLabel.setForeground(new java.awt.Color(75, 75, 75));
@@ -106,7 +116,7 @@ public class LoginForm extends javax.swing.JFrame {
         passwordLabel.setFocusable(false);
 
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel9.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\quickstart\\java\\src\\main\\java\\Login\\icons8_Invisible_30px_1.png"));
+        jLabel9.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\icons8_Invisible_30px_1.png"));
         jLabel9.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 jLabel9MouseClicked(evt);
@@ -246,10 +256,10 @@ public class LoginForm extends javax.swing.JFrame {
         // Swaps between hidden and visible icons/text field
         visibilityCounter++;
         if (visibilityCounter % 2 == 0) {
-            jLabel9.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\quickstart\\java\\src\\main\\java\\Login\\icons8_Invisible_30px_1.png"));
+            jLabel9.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\icons8_Invisible_30px_1.png"));
             passwordEntryField.setEchoChar('*');
         } else {
-            jLabel9.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\quickstart\\java\\src\\main\\java\\Login\\icons8_Eye_30px.png"));
+            jLabel9.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\icons8_Eye_30px.png"));
             passwordEntryField.setEchoChar((char)0);
         }
     }//GEN-LAST:event_jLabel9MouseClicked
@@ -277,17 +287,6 @@ public class LoginForm extends javax.swing.JFrame {
     }//GEN-LAST:event_registrationButtonMouseClicked
 
     private void loginButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginButtonMouseClicked
-        /////////////////////////////////////////////////////////////////////        
-        ///////////////////////temporary for testing/////////////////////////
-        QuickstartApplication.userID = "codyshook94";
-        this.setVisible(false);
-        try {
-            new Client().setVisible(true);
-        } catch (InterruptedException | ParseException ex) {
-            Logger.getLogger(LoginForm.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        ///////////////////////temporary for testing/////////////////////////
-        /////////////////////////////////////////////////////////////////////
         try {
             String temp = "";
             username = usernameEntryField.getText().toLowerCase();
@@ -310,14 +309,34 @@ public class LoginForm extends javax.swing.JFrame {
             else if (matchingUsername == 1){
                 if (password.equals(temp)){
                     QuickstartApplication.userID = usernameEntryField.getText();
-                    this.setVisible(false);
-                    new Client().setVisible(true); 
+                    JDialog jDialog = new JDialog();
+                    jDialog.setLayout(new GridBagLayout());
+                    JLabel label = new JLabel();
+                    label.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\Spin-1.4s-175px.gif"));
+                    jDialog.add(label);
+                    jDialog.setMinimumSize(new Dimension(175, 175));
+                    jDialog.setResizable(false);
+                    jDialog.setModal(false);
+                    jDialog.setUndecorated(true);
+                    jDialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+                    jDialog.setLocationRelativeTo(null);
+                    jDialog.setVisible(true);
+                    SwingWorker worker = new SwingWorker(){
+                        @Override
+                        protected Void doInBackground() throws Exception {
+                            new Client().setVisible(true);
+                            jDialog.dispose();
+                            return null;
+                        }
+                    };
+                    worker.execute();
+                    this.dispose();
                 }
                 else {
                     loginHeader.setText("Error - please re-enter information and try again");
                 }      
             }   
-        } catch (InterruptedException | ExecutionException | ParseException ex) {
+        } catch (InterruptedException | ExecutionException  ex) {
             Logger.getLogger(LoginForm.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_loginButtonMouseClicked

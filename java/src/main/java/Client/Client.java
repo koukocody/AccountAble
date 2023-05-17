@@ -10,6 +10,7 @@ package Client;
  * @author cody6
  */
 
+import Login.LoginForm;
 import static com.plaid.InitializeFirestore.db;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -29,15 +30,20 @@ import com.plaid.quickstart.QuickstartApplication;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -45,11 +51,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,11 +72,16 @@ import java.util.logging.Logger;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.Box;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
@@ -83,6 +97,7 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.entity.CategoryItemEntity;
 import org.jfree.chart.entity.CategoryLabelEntity;
 import org.jfree.chart.entity.ChartEntity;
+import org.jfree.chart.entity.LegendItemEntity;
 import org.jfree.chart.entity.PieSectionEntity;
 import org.jfree.chart.labels.StandardPieSectionLabelGenerator;
 import org.jfree.chart.labels.StandardPieToolTipGenerator;
@@ -102,13 +117,23 @@ import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.time.Day;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeries;
+import yahoofinance.Stock;
+import yahoofinance.YahooFinance;
+import yahoofinance.histquotes.HistoricalQuote;
+import yahoofinance.histquotes.Interval;
 
 public class Client extends javax.swing.JFrame {
 
     public static Map<String, String> accountIdAccessToken = new HashMap <>();
     final static Color NORMALTILECOLOR = new java.awt.Color(242, 243, 245);
+    final static Color HOVERCOLOR = new java.awt.Color(255, 255, 255);
     final static Color ONCLICKTILECOLOR = new java.awt.Color(75, 75, 75);
     final int spendingNumberOfWeeks = 26;
+    LocalDate todayMinusSpendingNumberOfWeeks = LocalDate.now().minusWeeks(spendingNumberOfWeeks);
+    DayOfWeek firstDayOfWeek = WeekFields.of(Locale.getDefault()).getFirstDayOfWeek();
+    LocalDate startDateBasic = todayMinusSpendingNumberOfWeeks.with(TemporalAdjusters.previousOrSame(firstDayOfWeek)).minusDays(1);
+    LocalDate endDateBasic = LocalDate.now().plusDays(1);
+    boolean isBasicCategoryChart = true;
     DecimalFormat df = new DecimalFormat("#,###.00");
     double allAccountBalance = 0.00;
     double allAccountsLoans = 0.00;
@@ -123,6 +148,8 @@ public class Client extends javax.swing.JFrame {
     int debtsIteratorYAxis = 0;
     int investmentIteratorXAxis = 0;
     int investmentIteratorYAxis = 0;
+    int stockIteratorXAxis = 0;
+    int stockIteratorYAxis = 0;
     int numberOfSavingsGoals = 0;
     Map<LocalDate, List<Transaction>> datedTransactions = new TreeMap<LocalDate, List<Transaction>>(Collections.reverseOrder());
     List<String> savingsAccountList = new ArrayList <>();
@@ -142,8 +169,10 @@ public class Client extends javax.swing.JFrame {
      * Creates new form Client
      * @throws java.lang.InterruptedException
      * @throws java.text.ParseException
+     * @throws java.util.concurrent.ExecutionException
      */
-    public Client() throws InterruptedException, ParseException {
+    public Client() throws InterruptedException, ParseException, ExecutionException, IOException {
+        
         long start, end; 
         
         System.out.println("start initComponents();");
@@ -157,7 +186,7 @@ public class Client extends javax.swing.JFrame {
         try {
             ApiFuture<QuerySnapshot> futureTokens = db.collection("users").document(QuickstartApplication.userID).collection("tokens").get();
             List<QueryDocumentSnapshot> tokens = futureTokens.get().getDocuments();
-            if (tokens.size() == 0) {
+            if (tokens.isEmpty()) {
                 masterTabPane.setSelectedIndex(1);
                 masterTabPane.setEnabledAt(0, false);
                 masterTabPane.setEnabledAt(2, false);
@@ -171,6 +200,7 @@ public class Client extends javax.swing.JFrame {
                 accountsList.addAll(Accounts.getAccounts(token.getId()));
                 liabilitiesList.add(Liabilities.getLiabilities(token.getId()));
             }      
+            int i = transactionsList.size() - 1;
             for (Transaction transaction : transactionsList) {
                 List<Transaction> tempList = new ArrayList<>();
                 LocalDate transactionDate = transaction.getDate();
@@ -180,6 +210,7 @@ public class Client extends javax.swing.JFrame {
                     tempList.add(transaction);
                     datedTransactions.put(transactionDate, tempList);
                 }
+                i--;
             }
         } catch (ExecutionException | ParseException | IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
@@ -229,12 +260,15 @@ public class Client extends javax.swing.JFrame {
         
         System.out.println("start spendingCategoryChart();");
         start = System.currentTimeMillis();
-        spendingCategoryChart();
+        spendingCategoryChart(startDateBasic, endDateBasic, "Past " + spendingNumberOfWeeks + " Weeks");
         end = System.currentTimeMillis();
         System.out.println("spendingCategoryChart end " + (end - start) + " ms");        
         
-
-       
+        System.out.println("start stockPanelPopulation();");
+        start = System.currentTimeMillis();
+        stockPanelPopulation();
+        end = System.currentTimeMillis();
+        System.out.println("stockPanelPopulation end " + (end - start) + " ms");   
     }
 
     
@@ -270,6 +304,20 @@ public class Client extends javax.swing.JFrame {
         newAccountContinueButton = new javax.swing.JButton();
         newAccountScrollPane = new javax.swing.JScrollPane();
         newAccountTextField = new javax.swing.JTextArea();
+        addStockDialog = new javax.swing.JDialog();
+        addStockPanel = new javax.swing.JPanel();
+        stockDialogTickerLabel = new javax.swing.JLabel();
+        stockDialogTickerTextField = new javax.swing.JTextField();
+        stockDialogSharesLabel = new javax.swing.JLabel();
+        stockDialogSharesTextField = new javax.swing.JTextField();
+        stockDialogCostLabel = new javax.swing.JLabel();
+        stockDialogCostTextField = new javax.swing.JTextField();
+        stockDialogDateLabel = new javax.swing.JLabel();
+        DateFormat dateFormat1 = new SimpleDateFormat("yyyy-MM-dd");
+        stockDialogDateTextField = new javax.swing.JFormattedTextField(dateFormat1);
+        stockDialogDateFormatLabel = new javax.swing.JLabel();
+        stockDialogAddOrEditButton = new javax.swing.JButton();
+        stockDialogDeleteButton = new javax.swing.JButton();
         masterTabPane = new javax.swing.JTabbedPane();
         homeTab = new javax.swing.JPanel();
         transactionsScrollPane = new javax.swing.JScrollPane();
@@ -323,8 +371,13 @@ public class Client extends javax.swing.JFrame {
         debtsScrollPanel = new javax.swing.JScrollPane();
         debtsPanel = new javax.swing.JPanel();
         investmentsTab = new javax.swing.JPanel();
-        investmentsScrollPanel = new javax.swing.JScrollPane();
-        investmentsPanel = new javax.swing.JPanel();
+        investmentsAccountScrollPanel = new javax.swing.JScrollPane();
+        investmentsAccountPanel = new javax.swing.JPanel();
+        investmentsStockPanel = new javax.swing.JPanel();
+        investmentsPanelStockLabel = new javax.swing.JLabel();
+        investmentsPanelAddStock = new javax.swing.JButton();
+        investmentsDisplayStocksScrollPane = new javax.swing.JScrollPane();
+        jPanel2 = new javax.swing.JPanel();
         spendingTab = new javax.swing.JPanel();
         spendingGraph = new javax.swing.JPanel();
         spendingScrollPane = new javax.swing.JScrollPane();
@@ -378,11 +431,12 @@ public class Client extends javax.swing.JFrame {
         mortgageLabel7 = new javax.swing.JLabel();
         mortgageLabel8 = new javax.swing.JLabel();
         mortgageLabel9 = new javax.swing.JLabel();
-        jLayeredPane1 = new javax.swing.JLayeredPane();
+        closeAppPanel = new javax.swing.JLayeredPane();
         closeLabel = new javax.swing.JLabel();
-        jLayeredPane2 = new javax.swing.JLayeredPane();
+        accountableHeaderPanel = new javax.swing.JLayeredPane();
         accountableHeaderLabel = new javax.swing.JLabel();
 
+        addGoalDialog.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         addGoalDialog.setTitle("Add to Savings Table");
         addGoalDialog.setIconImage(null);
         addGoalDialog.setLocation(new java.awt.Point(0, 0));
@@ -550,6 +604,118 @@ public class Client extends javax.swing.JFrame {
         newAccountDialog.setLocation(new java.awt.Point(0, 0));
         newAccountDialog.setSize(450, 380);
         newAccountDialog.setLocationRelativeTo(null);
+
+        addStockDialog.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        addStockDialog.setTitle("Add to Stock Tracking");
+        addStockDialog.setAlwaysOnTop(true);
+        addStockDialog.setIconImage(null);
+        addStockDialog.setPreferredSize(new java.awt.Dimension(350, 450));
+        addStockDialog.setSize(new java.awt.Dimension(350, 430));
+        addStockDialog.setType(java.awt.Window.Type.POPUP);
+        addStockDialog.setLocation(new java.awt.Point(0, 0));
+        addStockDialog.setLocationRelativeTo(null);
+
+        stockDialogTickerLabel.setText("Stock Symbol (e.g TSLA, MSFT)");
+
+        stockDialogSharesLabel.setText("Number of Shares");
+
+        stockDialogCostLabel.setText("Cost per Share");
+
+        stockDialogDateLabel.setText("Initial Purchase Date");
+
+        stockDialogDateTextField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                stockDialogDateTextFieldActionPerformed(evt);
+            }
+        });
+
+        stockDialogDateFormatLabel.setText("YYYY-MM-DD");
+
+        stockDialogAddOrEditButton.setText("Add");
+        stockDialogAddOrEditButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                stockDialogAddOrEditButtonMouseClicked(evt);
+            }
+        });
+
+        stockDialogDeleteButton.setText("Delete");
+        stockDialogDeleteButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                stockDialogDeleteButtonMouseClicked(evt);
+            }
+        });
+
+        javax.swing.GroupLayout addStockPanelLayout = new javax.swing.GroupLayout(addStockPanel);
+        addStockPanel.setLayout(addStockPanelLayout);
+        addStockPanelLayout.setHorizontalGroup(
+            addStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(addStockPanelLayout.createSequentialGroup()
+                .addGroup(addStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(addStockPanelLayout.createSequentialGroup()
+                        .addGap(14, 14, 14)
+                        .addGroup(addStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(stockDialogTickerLabel)
+                            .addComponent(stockDialogSharesLabel))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(addStockPanelLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(addStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(stockDialogDeleteButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(stockDialogTickerTextField)
+                            .addComponent(stockDialogSharesTextField)
+                            .addComponent(stockDialogCostTextField)
+                            .addComponent(stockDialogDateTextField)
+                            .addComponent(stockDialogAddOrEditButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(addStockPanelLayout.createSequentialGroup()
+                                .addGap(8, 8, 8)
+                                .addGroup(addStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(addStockPanelLayout.createSequentialGroup()
+                                        .addComponent(stockDialogDateLabel)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 147, Short.MAX_VALUE)
+                                        .addComponent(stockDialogDateFormatLabel))
+                                    .addGroup(addStockPanelLayout.createSequentialGroup()
+                                        .addComponent(stockDialogCostLabel)
+                                        .addGap(0, 0, Short.MAX_VALUE)))))))
+                .addContainerGap())
+        );
+        addStockPanelLayout.setVerticalGroup(
+            addStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(addStockPanelLayout.createSequentialGroup()
+                .addGap(17, 17, 17)
+                .addComponent(stockDialogTickerLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(stockDialogTickerTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(stockDialogSharesLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(stockDialogSharesTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(stockDialogCostLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(stockDialogCostTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addGroup(addStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(stockDialogDateLabel)
+                    .addComponent(stockDialogDateFormatLabel))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(stockDialogDateTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 35, Short.MAX_VALUE)
+                .addComponent(stockDialogAddOrEditButton)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(stockDialogDeleteButton)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        javax.swing.GroupLayout addStockDialogLayout = new javax.swing.GroupLayout(addStockDialog.getContentPane());
+        addStockDialog.getContentPane().setLayout(addStockDialogLayout);
+        addStockDialogLayout.setHorizontalGroup(
+            addStockDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(addStockPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+        addStockDialogLayout.setVerticalGroup(
+            addStockDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(addStockPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+        );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setUndecorated(true);
@@ -1048,8 +1214,8 @@ public class Client extends javax.swing.JFrame {
         colModel.getColumn(1).setPreferredWidth(40);
         colModel.getColumn(2).setPreferredWidth(40);
         colModel.getColumn(3).setPreferredWidth(40);
-        colModel.getColumn(4).setPreferredWidth(10);
-        colModel.getColumn(5).setPreferredWidth(40);
+        colModel.getColumn(4).setPreferredWidth(40);
+        colModel.getColumn(5).setPreferredWidth(10);
 
         goalsTable.setIntercellSpacing(new java.awt.Dimension(0, 5));
         goalsTable.setShowHorizontalLines(true);
@@ -1214,31 +1380,82 @@ public class Client extends javax.swing.JFrame {
 
         masterTabPane.addTab("Debts", debtsTab);
 
-        investmentsScrollPanel.setBorder(null);
+        investmentsAccountScrollPanel.setBorder(null);
 
-        investmentsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        investmentsPanel.setLayout(new java.awt.GridBagLayout());
-        investmentsScrollPanel.setViewportView(investmentsPanel);
+        investmentsAccountPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        investmentsAccountPanel.setLayout(new java.awt.GridBagLayout());
+        investmentsAccountScrollPanel.setViewportView(investmentsAccountPanel);
+        investmentsAccountScrollPanel.getVerticalScrollBar().setUnitIncrement(16);
+
+        investmentsPanelStockLabel.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+        investmentsPanelStockLabel.setText("Stocks");
+
+        investmentsPanelAddStock.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        investmentsPanelAddStock.setText("+");
+        investmentsPanelAddStock.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        investmentsPanelAddStock.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        investmentsPanelAddStock.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                investmentsPanelAddStockMouseClicked(evt);
+            }
+        });
+
+        investmentsDisplayStocksScrollPane.setBorder(null);
+        investmentsDisplayStocksScrollPane.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        investmentsDisplayStocksScrollPane.setHorizontalScrollBar(null);
+        investmentsDisplayStocksScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        javax.swing.GroupLayout investmentsStockPanelLayout = new javax.swing.GroupLayout(investmentsStockPanel);
+        investmentsStockPanel.setLayout(investmentsStockPanelLayout);
+        investmentsStockPanelLayout.setHorizontalGroup(
+            investmentsStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(investmentsStockPanelLayout.createSequentialGroup()
+                .addGap(15, 15, 15)
+                .addComponent(investmentsPanelStockLabel)
+                .addGap(18, 18, 18)
+                .addComponent(investmentsPanelAddStock, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(463, Short.MAX_VALUE))
+            .addComponent(investmentsDisplayStocksScrollPane)
+        );
+        investmentsStockPanelLayout.setVerticalGroup(
+            investmentsStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(investmentsStockPanelLayout.createSequentialGroup()
+                .addGroup(investmentsStockPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(investmentsPanelAddStock, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(investmentsPanelStockLabel))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(investmentsDisplayStocksScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 320, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.PAGE_AXIS));
 
         javax.swing.GroupLayout investmentsTabLayout = new javax.swing.GroupLayout(investmentsTab);
         investmentsTab.setLayout(investmentsTabLayout);
         investmentsTabLayout.setHorizontalGroup(
             investmentsTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1241, Short.MAX_VALUE)
-            .addGroup(investmentsTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(investmentsTabLayout.createSequentialGroup()
-                    .addGap(13, 13, 13)
-                    .addComponent(investmentsScrollPanel)
-                    .addGap(13, 13, 13)))
+            .addGroup(investmentsTabLayout.createSequentialGroup()
+                .addGap(20, 20, 20)
+                .addGroup(investmentsTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(investmentsStockPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(investmentsAccountScrollPanel))
+                .addGap(18, 18, 18)
+                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 536, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(46, Short.MAX_VALUE))
         );
         investmentsTabLayout.setVerticalGroup(
             investmentsTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 698, Short.MAX_VALUE)
-            .addGroup(investmentsTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(investmentsTabLayout.createSequentialGroup()
-                    .addGap(23, 23, 23)
-                    .addComponent(investmentsScrollPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 651, Short.MAX_VALUE)
-                    .addGap(24, 24, 24)))
+            .addGroup(investmentsTabLayout.createSequentialGroup()
+                .addGroup(investmentsTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(investmentsTabLayout.createSequentialGroup()
+                        .addGap(20, 20, 20)
+                        .addComponent(investmentsAccountScrollPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 287, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(investmentsStockPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(investmentsTabLayout.createSequentialGroup()
+                        .addGap(60, 60, 60)
+                        .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 575, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(18, Short.MAX_VALUE))
         );
 
         masterTabPane.addTab("Investments", investmentsTab);
@@ -1510,40 +1727,64 @@ public class Client extends javax.swing.JFrame {
 
         studentLayoutPanel.setLayout(new java.awt.GridLayout(4, 3, 5, 5));
 
+        studentLabel1.setBackground(new java.awt.Color(225, 225, 225));
         studentLabel1.setText("jLabel1");
+        studentLabel1.setOpaque(true);
         studentLayoutPanel.add(studentLabel1);
 
+        studentLabel2.setBackground(new java.awt.Color(225, 225, 225));
         studentLabel2.setText("jLabel2");
+        studentLabel2.setOpaque(true);
         studentLayoutPanel.add(studentLabel2);
 
+        studentLabel3.setBackground(new java.awt.Color(225, 225, 225));
         studentLabel3.setText("jLabel3");
+        studentLabel3.setOpaque(true);
         studentLayoutPanel.add(studentLabel3);
 
+        studentLabel4.setBackground(new java.awt.Color(242, 243, 245));
         studentLabel4.setText("jLabel4");
+        studentLabel4.setOpaque(true);
         studentLayoutPanel.add(studentLabel4);
 
+        studentLabel5.setBackground(new java.awt.Color(242, 243, 245));
         studentLabel5.setText("jLabel5");
+        studentLabel5.setOpaque(true);
         studentLayoutPanel.add(studentLabel5);
 
+        studentLabel6.setBackground(new java.awt.Color(242, 243, 245));
         studentLabel6.setText("jLabel6");
+        studentLabel6.setOpaque(true);
         studentLayoutPanel.add(studentLabel6);
 
+        studentLabel7.setBackground(new java.awt.Color(225, 225, 225));
         studentLabel7.setText("jLabel7");
+        studentLabel7.setOpaque(true);
         studentLayoutPanel.add(studentLabel7);
 
+        studentLabel8.setBackground(new java.awt.Color(225, 225, 225));
         studentLabel8.setText("jLabel8");
+        studentLabel8.setOpaque(true);
         studentLayoutPanel.add(studentLabel8);
 
+        studentLabel9.setBackground(new java.awt.Color(225, 225, 225));
         studentLabel9.setText("jLabel9");
+        studentLabel9.setOpaque(true);
         studentLayoutPanel.add(studentLabel9);
 
+        studentLabel10.setBackground(new java.awt.Color(242, 243, 245));
         studentLabel10.setText("jLabel10");
+        studentLabel10.setOpaque(true);
         studentLayoutPanel.add(studentLabel10);
 
+        studentLabel11.setBackground(new java.awt.Color(242, 243, 245));
         studentLabel11.setText("jLabel11");
+        studentLabel11.setOpaque(true);
         studentLayoutPanel.add(studentLabel11);
 
+        studentLabel12.setBackground(new java.awt.Color(242, 243, 245));
         studentLabel12.setText("jLabel12");
+        studentLabel12.setOpaque(true);
         studentLayoutPanel.add(studentLabel12);
 
         javax.swing.GroupLayout studentCardLayout = new javax.swing.GroupLayout(studentCard);
@@ -1601,31 +1842,49 @@ public class Client extends javax.swing.JFrame {
 
         mortgageLayoutPanel.setLayout(new java.awt.GridLayout(3, 3, 5, 5));
 
+        mortgageLabel1.setBackground(new java.awt.Color(225, 225, 225));
         mortgageLabel1.setText("jLabel1");
+        mortgageLabel1.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel1);
 
+        mortgageLabel2.setBackground(new java.awt.Color(225, 225, 225));
         mortgageLabel2.setText("jLabel2");
+        mortgageLabel2.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel2);
 
+        mortgageLabel3.setBackground(new java.awt.Color(225, 225, 225));
         mortgageLabel3.setText("jLabel3");
+        mortgageLabel3.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel3);
 
+        mortgageLabel4.setBackground(new java.awt.Color(242, 243, 245));
         mortgageLabel4.setText("jLabel4");
+        mortgageLabel4.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel4);
 
+        mortgageLabel5.setBackground(new java.awt.Color(242, 243, 245));
         mortgageLabel5.setText("jLabel5");
+        mortgageLabel5.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel5);
 
+        mortgageLabel6.setBackground(new java.awt.Color(242, 243, 245));
         mortgageLabel6.setText("jLabel6");
+        mortgageLabel6.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel6);
 
+        mortgageLabel7.setBackground(new java.awt.Color(225, 225, 225));
         mortgageLabel7.setText("jLabel7");
+        mortgageLabel7.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel7);
 
+        mortgageLabel8.setBackground(new java.awt.Color(225, 225, 225));
         mortgageLabel8.setText("jLabel8");
+        mortgageLabel8.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel8);
 
+        mortgageLabel9.setBackground(new java.awt.Color(225, 225, 225));
         mortgageLabel9.setText("jLabel9");
+        mortgageLabel9.setOpaque(true);
         mortgageLayoutPanel.add(mortgageLabel9);
 
         javax.swing.GroupLayout mortgageCardLayout = new javax.swing.GroupLayout(mortgageCard);
@@ -1669,8 +1928,8 @@ public class Client extends javax.swing.JFrame {
         masterTabPane.addTab("accountPopup", accountPopupTab);
         masterTabPane.remove(6);
 
-        jLayeredPane1.setMaximumSize(new java.awt.Dimension(50, 50));
-        jLayeredPane1.setPreferredSize(new java.awt.Dimension(50, 50));
+        closeAppPanel.setMaximumSize(new java.awt.Dimension(50, 50));
+        closeAppPanel.setPreferredSize(new java.awt.Dimension(50, 50));
 
         closeLabel.setBackground(new java.awt.Color(75, 75, 75));
         closeLabel.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
@@ -1682,23 +1941,29 @@ public class Client extends javax.swing.JFrame {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 closeLabelMouseClicked(evt);
             }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                closeLabelMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                closeLabelMouseExited(evt);
+            }
         });
 
-        jLayeredPane1.setLayer(closeLabel, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        closeAppPanel.setLayer(closeLabel, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
-        javax.swing.GroupLayout jLayeredPane1Layout = new javax.swing.GroupLayout(jLayeredPane1);
-        jLayeredPane1.setLayout(jLayeredPane1Layout);
-        jLayeredPane1Layout.setHorizontalGroup(
-            jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        javax.swing.GroupLayout closeAppPanelLayout = new javax.swing.GroupLayout(closeAppPanel);
+        closeAppPanel.setLayout(closeAppPanelLayout);
+        closeAppPanelLayout.setHorizontalGroup(
+            closeAppPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 38, Short.MAX_VALUE)
-            .addGroup(jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(closeAppPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addComponent(closeLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 32, Short.MAX_VALUE))
         );
-        jLayeredPane1Layout.setVerticalGroup(
-            jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        closeAppPanelLayout.setVerticalGroup(
+            closeAppPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 0, Short.MAX_VALUE)
-            .addGroup(jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jLayeredPane1Layout.createSequentialGroup()
+            .addGroup(closeAppPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(closeAppPanelLayout.createSequentialGroup()
                     .addComponent(closeLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 44, Short.MAX_VALUE)
                     .addContainerGap()))
         );
@@ -1707,18 +1972,18 @@ public class Client extends javax.swing.JFrame {
         accountableHeaderLabel.setForeground(new java.awt.Color(0, 0, 0));
         accountableHeaderLabel.setText("AccountAble");
 
-        jLayeredPane2.setLayer(accountableHeaderLabel, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        accountableHeaderPanel.setLayer(accountableHeaderLabel, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
-        javax.swing.GroupLayout jLayeredPane2Layout = new javax.swing.GroupLayout(jLayeredPane2);
-        jLayeredPane2.setLayout(jLayeredPane2Layout);
-        jLayeredPane2Layout.setHorizontalGroup(
-            jLayeredPane2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jLayeredPane2Layout.createSequentialGroup()
+        javax.swing.GroupLayout accountableHeaderPanelLayout = new javax.swing.GroupLayout(accountableHeaderPanel);
+        accountableHeaderPanel.setLayout(accountableHeaderPanelLayout);
+        accountableHeaderPanelLayout.setHorizontalGroup(
+            accountableHeaderPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(accountableHeaderPanelLayout.createSequentialGroup()
                 .addComponent(accountableHeaderLabel)
                 .addGap(0, 1045, Short.MAX_VALUE))
         );
-        jLayeredPane2Layout.setVerticalGroup(
-            jLayeredPane2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        accountableHeaderPanelLayout.setVerticalGroup(
+            accountableHeaderPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(accountableHeaderLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 50, Short.MAX_VALUE)
         );
 
@@ -1728,18 +1993,18 @@ public class Client extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLayeredPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(accountableHeaderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 124, Short.MAX_VALUE)
-                .addComponent(jLayeredPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(closeAppPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addComponent(masterTabPane, javax.swing.GroupLayout.DEFAULT_SIZE, 1371, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLayeredPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLayeredPane1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(accountableHeaderPanel)
+                    .addComponent(closeAppPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(0, 698, Short.MAX_VALUE))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
@@ -1765,7 +2030,7 @@ public class Client extends javax.swing.JFrame {
                 stdin.println("npx kill-port 3000");
                 stdin.println("set REACT_APP_USER_ID=" + QuickstartApplication.userID);
                 stdin.println("set REACT_APP_USER_ID");
-                stdin.println("cd C:\\Users\\cody6\\Documents\\NetBeansProjects\\quickstart\\frontend");
+                stdin.println("cd C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\frontend");
                 stdin.println("npm start");
             }
             TimeUnit.SECONDS.sleep(6);  // Gives time for the npm script to run and open the html Link Launch
@@ -1883,7 +2148,7 @@ public class Client extends javax.swing.JFrame {
             }
             
             // Add current table to savings goals in database
-            for (int insurance = 0; insurance < (rows * 2); insurance++) {
+            for (int insurance = 0; insurance < ((rows + 2) * 2); insurance++) {
                 allocatedSavings = 0.00;
                 for (int j = 0; j < rows; j++) {
                     Map<String, String> data = new HashMap<>();
@@ -1918,16 +2183,108 @@ public class Client extends javax.swing.JFrame {
 
     private void profileReloadButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_profileReloadButtonMouseClicked
         this.dispose();
-        try {
-            new Client().setVisible(true);
-        } catch (InterruptedException | ParseException ex) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        JDialog jDialog = new JDialog();
+        jDialog.setLayout(new GridBagLayout());
+
+        JLabel label = new JLabel();
+        label.setIcon(new javax.swing.ImageIcon("C:\\Users\\cody6\\Documents\\NetBeansProjects\\AccountAble\\java\\src\\main\\java\\Login\\Spin-1.4s-175px.gif"));
+
+        jDialog.add(label);
+
+        jDialog.setMinimumSize(new Dimension(175, 175));
+        jDialog.setResizable(false);
+        jDialog.setModal(false);
+        jDialog.setUndecorated(true);
+        jDialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        jDialog.setLocationRelativeTo(null);
+        jDialog.setVisible(true);
+        
+        SwingWorker worker = new SwingWorker(){
+            @Override
+            protected Void doInBackground() throws Exception {
+                new Client().setVisible(true);
+                jDialog.dispose();
+                return null;
+            }
+        };
+        worker.execute();
     }//GEN-LAST:event_profileReloadButtonMouseClicked
 
     private void newAccountContinueButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_newAccountContinueButtonMouseClicked
         newAccountDialog.dispose();
     }//GEN-LAST:event_newAccountContinueButtonMouseClicked
+
+    private void investmentsPanelAddStockMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_investmentsPanelAddStockMouseClicked
+        stockDialogTickerTextField.setText("");
+        stockDialogTickerTextField.setEditable(true);
+        stockDialogTickerTextField.setEnabled(true);
+        stockDialogSharesTextField.setText("");
+        stockDialogCostTextField.setText("");
+        stockDialogDateTextField.setText("");
+        stockDialogAddOrEditButton.setText("Add");
+        stockDialogDeleteButton.setVisible(false);
+        addStockDialog.setVisible(true);
+    }//GEN-LAST:event_investmentsPanelAddStockMouseClicked
+
+    private void stockDialogAddOrEditButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_stockDialogAddOrEditButtonMouseClicked
+        Map<String, Object> data = new HashMap<>();
+        data.put("shares", stockDialogSharesTextField.getText());
+        data.put("cost", stockDialogCostTextField.getText());
+        data.put("date", stockDialogDateTextField.getText()); 
+        db.collection("users").document(QuickstartApplication.userID).collection("stocks").document(stockDialogTickerTextField.getText().toUpperCase()).set(data);
+        
+        stockDialogTickerTextField.setText("");
+        stockDialogTickerTextField.setEditable(true);
+        stockDialogTickerTextField.setEnabled(true);
+        stockDialogSharesTextField.setText("");
+        stockDialogCostTextField.setText("");
+        stockDialogDateTextField.setText("");
+        
+        try {
+            stockPanelPopulation();
+        } catch (InterruptedException | ExecutionException | IOException | ParseException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        addStockDialog.dispose();
+    }//GEN-LAST:event_stockDialogAddOrEditButtonMouseClicked
+
+    private void stockDialogDeleteButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_stockDialogDeleteButtonMouseClicked
+        db.collection("users").document(QuickstartApplication.userID).collection("stocks").document(stockDialogTickerTextField.getText()).delete();
+        stockDialogDeleteButton.setVisible(false);
+        stockDialogTickerTextField.setText("");
+        stockDialogTickerTextField.setEditable(true);
+        stockDialogTickerTextField.setEnabled(true);
+        stockDialogSharesTextField.setText("");
+        stockDialogCostTextField.setText("");
+        stockDialogDateTextField.setText("");
+        
+        try {
+            stockPanelPopulation();
+        } catch (InterruptedException | ExecutionException | IOException | ParseException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        addStockDialog.dispose();
+    }//GEN-LAST:event_stockDialogDeleteButtonMouseClicked
+
+    private void closeLabelMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_closeLabelMouseEntered
+        JLabel parent = (JLabel)evt.getSource();
+        parent.setBackground(new Color(178,34,34));
+        parent.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        parent.revalidate();
+    }//GEN-LAST:event_closeLabelMouseEntered
+
+    private void closeLabelMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_closeLabelMouseExited
+        JLabel parent = (JLabel)evt.getSource();
+        parent.setBackground(new Color(75, 75, 75));
+        parent.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        parent.revalidate();
+    }//GEN-LAST:event_closeLabelMouseExited
+
+    private void stockDialogDateTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stockDialogDateTextFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_stockDialogDateTextFieldActionPerformed
 
     private void savingsTableAndGraphHistory() throws ParseException {
         // Allocate savings transactions
@@ -2255,9 +2612,9 @@ public class Client extends javax.swing.JFrame {
                     investmentIteratorXAxis = 0;
                     investmentIteratorYAxis++;
                 }                
-                investmentsPanel.add(investmentsTile, c);
-                investmentsPanel.revalidate();
-                investmentsPanel.repaint(); 
+                investmentsAccountPanel.add(investmentsTile, c);
+                investmentsAccountPanel.revalidate();
+                investmentsAccountPanel.repaint(); 
                 allAccountsInvestments += accountCurrent; 
             }                
         }
@@ -2314,6 +2671,20 @@ public class Client extends javax.swing.JFrame {
             @Override
             public void mouseReleased(java.awt.event.MouseEvent evt) {       
                 tileName.setBackground(NORMALTILECOLOR);
+            }
+        });
+        tileName.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {       
+                tileName.setBackground(HOVERCOLOR);
+                tileName.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
+        });
+        tileName.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {       
+                tileName.setBackground(NORMALTILECOLOR);
+                tileName.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
             }
         });
     }
@@ -2686,11 +3057,11 @@ public class Client extends javax.swing.JFrame {
             public void chartMouseClicked(ChartMouseEvent event) {
                 ChartEntity entity = event.getEntity();
                 LocalDate date = null;
-                if (entity instanceof CategoryItemEntity) { //CategoryLabelEntity
+                if (entity instanceof CategoryItemEntity) { 
                     CategoryItemEntity itemEntity = (CategoryItemEntity) entity;
                     date = LocalDate.parse(itemEntity.getColumnKey().toString());
                 }
-                else if (entity instanceof CategoryLabelEntity) { //CategoryLabelEntity
+                else if (entity instanceof CategoryLabelEntity) { 
                     CategoryLabelEntity labelEntity = (CategoryLabelEntity) entity;
                     date = LocalDate.parse(labelEntity.getKey().toString());                  
                 }                
@@ -2725,21 +3096,29 @@ public class Client extends javax.swing.JFrame {
                     if (spendingRowCount == 0) {
                         spendingScrollPane.setVisible(false);
                         spendingLabel.setText("No outgoing transactions from " + date + " to " + date.plusDays(6));
+                        if (!isBasicCategoryChart) {
+                            spendingCategoryChart(startDateBasic, endDateBasic, "Past " + spendingNumberOfWeeks + " Weeks");
+                            isBasicCategoryChart = true;
+                        }
                     } else {
                         spendingScrollPane.setVisible(true);
                         spendingLabel.setText("Details from " + date + " to " + date.plusDays(6));
+                        spendingCategoryChart(date, date.plusDays(6), "Details from " + date + " to " + date.plusDays(6));
+                        isBasicCategoryChart = false;
                     }
                 }
                 else {
                     spendingScrollPane.setVisible(false);
                     spendingLabel.setText("Click an entry in the graph above to display more details");
+                    if (!isBasicCategoryChart) {
+                        spendingCategoryChart(startDateBasic, endDateBasic, "Past " + spendingNumberOfWeeks + " Weeks");
+                        isBasicCategoryChart = true;
+                    }
                 }          
             }
             
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             ////////////////////////////// Possible addition - highlight entity on hover //////////////////////////////
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             @Override
             public void chartMouseMoved(ChartMouseEvent event) {
@@ -2747,8 +3126,6 @@ public class Client extends javax.swing.JFrame {
                 if (entity instanceof CategoryItemEntity) { //CategoryLabelEntity
                 }
             }
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2762,14 +3139,11 @@ public class Client extends javax.swing.JFrame {
         spendingTable.repaint(); 
     }
     
-    private void spendingCategoryChart () {
+    private void spendingCategoryChart(LocalDate startDate, LocalDate endDate, String subtitleString) {
         // Create map of category + transactions
-        LocalDate todayMinusSpendingNumberOfWeeks = LocalDate.now().minusWeeks(spendingNumberOfWeeks);
-        DayOfWeek firstDayOfWeek = WeekFields.of(Locale.getDefault()).getFirstDayOfWeek();
-        LocalDate startDate = todayMinusSpendingNumberOfWeeks.with(TemporalAdjusters.previousOrSame(firstDayOfWeek));
         Map<String, List<Transaction>> spendingTransactionsByCategory = new TreeMap<>();
         for (Map.Entry<LocalDate, List<Transaction>> entry : datedTransactions.entrySet()) {
-            if (entry.getKey().isAfter(startDate.minusDays(1))) {
+            if (entry.getKey().isAfter(startDate) && entry.getKey().isBefore(endDate)) {
                 for (Transaction transaction : entry.getValue()) {
                     List<String> categoryList = transaction.getCategory();
                     if (transaction.getAmount() > 0 && !categoryList.get(1).equalsIgnoreCase("credit card")) { // removes incoming transactions, and payments to credit cards (redundant)
@@ -2815,7 +3189,7 @@ public class Client extends javax.swing.JFrame {
         JFreeChart chart = ChartFactory.createPieChart("Spending Categories", dataset, true, true, false);
         chart.setBackgroundPaint(NORMALTILECOLOR);
         chart.getTitle().setFont(new java.awt.Font("Segoe UI", 0, 18));
-        chart.addSubtitle(new TextTitle("Past " + spendingNumberOfWeeks + " Weeks"));
+        chart.addSubtitle(new TextTitle(subtitleString));
         PiePlot plot = (PiePlot) chart.getPlot();
         plot.setLabelBackgroundPaint(Color.WHITE);
         ChartPanel chartPanel = new ChartPanel(chart);
@@ -2832,10 +3206,17 @@ public class Client extends javax.swing.JFrame {
             public void chartMouseClicked(ChartMouseEvent event) {
                 // Open new pie chart window with a further categories breakdown
                 ChartEntity entity = event.getEntity();
-                if (entity instanceof PieSectionEntity) { 
+                String clickedCategory = "";
+                if (entity instanceof PieSectionEntity || entity instanceof LegendItemEntity) { 
+                    if (entity instanceof PieSectionEntity){
+                        clickedCategory = ((PieSectionEntity) entity).getSectionKey().toString();
+                    }
+                    if (entity instanceof LegendItemEntity){
+                        clickedCategory = ((LegendItemEntity) entity).getSeriesKey().toString();
+                    }
                     DefaultPieDataset popupDataset = new DefaultPieDataset(); 
                     for (Map.Entry<String, Map<String, Double>> category : categoryMap.entrySet()) {
-                        if (((PieSectionEntity) entity).getSectionKey().equals(category.getKey())) {
+                        if (clickedCategory.equals(category.getKey())) {
                             for (Map.Entry<String, Double> subcategory : category.getValue().entrySet()) {
                                 popupDataset.setValue(subcategory.getKey(), subcategory.getValue());
                             }
@@ -2860,14 +3241,193 @@ public class Client extends javax.swing.JFrame {
                 }
             }
         });
+        // Remove old chart and add new chart
+        Component[] components = spendingPieChart.getComponents();
+        if (components.length != 0) {
+            for (Component component : components) {
+                spendingPieChart.remove(component);
+            }
+        }
         spendingPieChart.setPreferredSize(new Dimension(485, 340));
         spendingPieChart.add(chartPanel);
         spendingPieChart.revalidate();
         spendingPieChart.repaint();        
     }
     
+    private void stockPanelPopulation() throws InterruptedException, ExecutionException, IOException, ParseException {
+        ApiFuture<QuerySnapshot> future = db.collection("users").document(QuickstartApplication.userID).collection("stocks").get();
+        List<QueryDocumentSnapshot> stocks = new ArrayList <>();
+        stocks = future.get().getDocuments();
+        stockIteratorXAxis = 0;
+        stockIteratorYAxis = 0;
+        JPanel finishedPanel = new javax.swing.JPanel();
+        finishedPanel.setLayout(new java.awt.GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        final TimeSeriesCollection dataset = new TimeSeriesCollection();
+             
+        for (QueryDocumentSnapshot  stock : stocks) {
+            JPanel panel = new javax.swing.JPanel();
+            panel.setBackground(NORMALTILECOLOR);
+            panel.setLayout(new javax.swing.BoxLayout(panel, javax.swing.BoxLayout.PAGE_AXIS));
+            panel.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
+            panel.setFocusable(true);
+            panel.add(Box.createRigidArea(new Dimension(10,5)));
+            
+            String[] symbols = new String[] {stock.getId()};
+            // Can also be done with explicit from, to and Interval parameters
+            Map<String, Stock> stocksGrab = YahooFinance.get(symbols, true);
+            Stock stockInfo = stocksGrab.get(stock.getId());
+            if (stockInfo == null) {
+                break;
+            }
+            BigDecimal currentStockPrice = stockInfo.getQuote().getPrice();
+            JLabel ticker = new javax.swing.JLabel(stock.getId() + " $" + df.format(currentStockPrice));
+            ticker.setFont(new java.awt.Font("Segoe UI", 0, 24));
+            panel.add(ticker);
+            panel.add(Box.createRigidArea(new Dimension(10,10)));
+            String sharesAmount = stock.get("shares").toString();
+            JLabel shares = new javax.swing.JLabel(sharesAmount + " shares owned");
+            shares.setFont(new java.awt.Font("Segoe UI", 0, 14));
+            panel.add(shares);
+            String costPerShare = stock.get("cost").toString();
+            JLabel cost = new javax.swing.JLabel("$" + costPerShare + "/share");
+            cost.setFont(new java.awt.Font("Segoe UI", 0, 14));
+            panel.add(cost);     
+            panel.add(Box.createRigidArea(new Dimension(10,10)));
+            Double currentAmount = Double.valueOf(df.format(currentStockPrice)) * Double.valueOf(sharesAmount);
+            JLabel currentTotal = new javax.swing.JLabel("Market value: $" + df.format(currentAmount));
+            currentTotal.setFont(new java.awt.Font("Segoe UI", 0, 14));
+            panel.add(currentTotal);    
+            Double costAmount = Double.valueOf(costPerShare) * Double.valueOf(sharesAmount);
+            Double profitLossAmount = currentAmount - costAmount;
+            JLabel profitLossTotal = new javax.swing.JLabel("Open P/L: $" + df.format(profitLossAmount));
+            profitLossTotal.setFont(new java.awt.Font("Segoe UI", 0, 14));
+            if (profitLossAmount > 0) {
+                profitLossTotal.setForeground(new Color(60,179,113));
+            } else {
+                profitLossTotal.setForeground(new Color(178,34,34));
+                profitLossTotal.setText("Open P/L: $" + df.format(profitLossAmount * -1));
+            }
+            panel.add(profitLossTotal);             
+            panel.setPreferredSize(new Dimension(180,145));
+            
+            // click listener to edit stock
+            panel.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent evt) {  
+                    addStockDialog.setVisible(true);
+                    stockDialogTickerTextField.setText(stock.getId());
+                    stockDialogTickerTextField.setEditable(false);
+                    stockDialogTickerTextField.setEnabled(false);
+                    stockDialogSharesTextField.setText(sharesAmount);
+                    stockDialogCostTextField.setText(costPerShare);
+                    stockDialogDateTextField.setText(stock.get("date").toString());
+                    stockDialogAddOrEditButton.setText("Edit");
+                    stockDialogDeleteButton.setVisible(true);
+                }
+            });
+            tileClickColorChange(panel);
+
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.insets = new Insets(15, 15, 0, 0);
+            c.weightx = 0.001;
+            c.weighty = 0.001;   
+            c.insets = new Insets(15, 15, 0, 0);
+            c.gridx = stockIteratorXAxis;
+            c.gridy = stockIteratorYAxis;
+            stockIteratorXAxis++;               
+            if (stockIteratorXAxis == 3) {   // move to next row
+                c.insets = new Insets(15, 15, 0, 30);
+                stockIteratorXAxis = 0;
+                stockIteratorYAxis++;
+            }          
+            finishedPanel.add(panel, c);
+            
+            
+            // Graph setup -- API calls are way too slow. can not include for now.
+            Calendar cal = Calendar.getInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
+            cal.setTime(sdf.parse(stock.get("date").toString()));// all done
+            List<HistoricalQuote> fullHistory = stockInfo.getHistory(cal, Interval.WEEKLY);
+            
+            
+            final TimeSeries s1 = new TimeSeries(stock.getId());
+            for (HistoricalQuote quote : fullHistory){
+                Calendar calendar = quote.getDate();
+                ZoneId zoneId = ZoneId.systemDefault();
+                Date date = calendar.getTime();
+                LocalDate ld = date.toInstant().atZone(zoneId).toLocalDate();
+                Day day = new Day(ld.getDayOfMonth(), ld.getMonthValue(), ld.getYear());
+                s1.add(day, Double.valueOf(quote.getClose().toString()));
+            }
+            dataset.addSeries(s1);
+            
+        }
+        
+        JFreeChart chart = ChartFactory.createTimeSeriesChart("Stock Performance Over Time", null, "Amount (in USD)", dataset, true, true, false);
+        chart.getTitle().setFont(new java.awt.Font("Segoe UI", 0, 18));
+        chart.setBackgroundPaint(NORMALTILECOLOR);
+        XYPlot plot = (XYPlot) chart.getPlot();
+        XYToolTipGenerator xyttg = new StandardXYToolTipGenerator(" {1}: {2} ", DateFormat.getDateInstance(), NumberFormat.getCurrencyInstance());
+        plot.getRenderer().setDefaultToolTipGenerator(xyttg);
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setAutoRangeIncludesZero(true);
+        ChartPanel chartPanel = new ChartPanel(chart); 
+        
+        Component[] components = jPanel2.getComponents();
+        if (components.length != 0) {
+            for (Component component : components) {
+                jPanel2.remove(component);
+            }
+        }
+        
+        jPanel2.setPreferredSize(new Dimension(474, 306));
+        jPanel2.add(chartPanel);
+        jPanel2.revalidate();
+        jPanel2.repaint();
+        investmentsTab.revalidate();
+        investmentsTab.repaint(); 
+        
+        
+        // Add blank filler panels for formatting if only 1 or 2 stock panels exist
+        if (stockIteratorXAxis == 1 || stockIteratorXAxis == 2) {
+            if (stockIteratorXAxis == 1) {
+                JPanel fillerTile1 = new javax.swing.JPanel();
+                fillerTile1.add(Box.createRigidArea(new Dimension(10,10)));
+                fillerTile1.setBorder(null);
+                c.anchor = GridBagConstraints.NORTHWEST;
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.insets = new Insets(15, 15, 0, 0);
+                c.weightx = 0.001;
+                c.weighty = 0.001;   
+                c.insets = new Insets(15, 15, 0, 0);
+                c.gridx = stockIteratorXAxis;
+                c.gridy = stockIteratorYAxis;
+                stockIteratorXAxis++;  
+                finishedPanel.add(fillerTile1, c);
+            } 
+            if (stockIteratorXAxis == 2) {
+                JPanel fillerTile2 = new javax.swing.JPanel();
+                fillerTile2.add(Box.createRigidArea(new Dimension(10,10)));
+                fillerTile2.setBorder(null);
+                c.anchor = GridBagConstraints.NORTHWEST;
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.insets = new Insets(15, 15, 0, 0);
+                c.weightx = 0.001;
+                c.weighty = 0.001;   
+                c.insets = new Insets(15, 15, 0, 0);
+                c.gridx = stockIteratorXAxis;
+                c.gridy = stockIteratorYAxis;
+                stockIteratorXAxis++;  
+                finishedPanel.add(fillerTile2, c);
+            }
+        }
+        investmentsDisplayStocksScrollPane.setViewportView(finishedPanel);
+    } 
+    
     /**
-     * @param args the command line arguments
+     * @throws java.lang.InterruptedException
      */
     public static void main() throws InterruptedException {
         /* Set the Nimbus look and feel */
@@ -2891,10 +3451,11 @@ public class Client extends javax.swing.JFrame {
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 try {
                     new Client().setVisible(true);
-                } catch (InterruptedException | ParseException ex) {
+                } catch (InterruptedException | ParseException | ExecutionException | IOException ex) {
                     Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
@@ -2910,6 +3471,7 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JScrollPane accountScrollPanel;
     private javax.swing.JPanel accountTab;
     private javax.swing.JLabel accountableHeaderLabel;
+    private javax.swing.JLayeredPane accountableHeaderPanel;
     private javax.swing.JLabel actualAllocationLabel;
     private javax.swing.JLabel actualAmountAllocationLabel;
     private javax.swing.JFormattedTextField addGoalAmountSavedField;
@@ -2928,6 +3490,8 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JFormattedTextField addGoalItemDescField;
     private javax.swing.JLabel addGoalItemDescLabel;
     private javax.swing.JPanel addGoalPanel;
+    private javax.swing.JDialog addStockDialog;
+    private javax.swing.JPanel addStockPanel;
     private javax.swing.JLabel availableAllocationLabel;
     private javax.swing.JLabel availableAmountAllocationLabel;
     private javax.swing.JLabel availableCreditLabel;
@@ -2935,6 +3499,7 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JLabel balanceLabel;
     private javax.swing.JPanel balanceTile;
     private javax.swing.JPanel cards;
+    private javax.swing.JLayeredPane closeAppPanel;
     private javax.swing.JLabel closeLabel;
     private javax.swing.JPanel debtsPanel;
     private javax.swing.JScrollPane debtsScrollPanel;
@@ -2953,15 +3518,18 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JPanel homeTilesPanel;
     private javax.swing.JPanel incomeAndExpenseGraph;
     private javax.swing.JButton initiateGoalDialogButton;
+    private javax.swing.JPanel investmentsAccountPanel;
+    private javax.swing.JScrollPane investmentsAccountScrollPanel;
+    private javax.swing.JScrollPane investmentsDisplayStocksScrollPane;
     private javax.swing.JLabel investmentsLabel;
-    private javax.swing.JPanel investmentsPanel;
-    private javax.swing.JScrollPane investmentsScrollPanel;
+    private javax.swing.JButton investmentsPanelAddStock;
+    private javax.swing.JLabel investmentsPanelStockLabel;
+    private javax.swing.JPanel investmentsStockPanel;
     private javax.swing.JPanel investmentsTab;
     private javax.swing.JPanel investmentsTile;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLayeredPane jLayeredPane1;
-    private javax.swing.JLayeredPane jLayeredPane2;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JButton linkButton;
     private javax.swing.JPanel listedTransactionsPanel;
     private javax.swing.JLabel loansLabel;
@@ -3012,6 +3580,17 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JScrollPane spendingScrollPane;
     private javax.swing.JPanel spendingTab;
     private javax.swing.JTable spendingTable;
+    private javax.swing.JButton stockDialogAddOrEditButton;
+    private javax.swing.JLabel stockDialogCostLabel;
+    private javax.swing.JTextField stockDialogCostTextField;
+    private javax.swing.JLabel stockDialogDateFormatLabel;
+    private javax.swing.JLabel stockDialogDateLabel;
+    private javax.swing.JTextField stockDialogDateTextField;
+    private javax.swing.JButton stockDialogDeleteButton;
+    private javax.swing.JLabel stockDialogSharesLabel;
+    private javax.swing.JTextField stockDialogSharesTextField;
+    private javax.swing.JLabel stockDialogTickerLabel;
+    private javax.swing.JTextField stockDialogTickerTextField;
     private javax.swing.JPanel studentCard;
     private javax.swing.JLabel studentLabel1;
     private javax.swing.JLabel studentLabel10;

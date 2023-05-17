@@ -408,9 +408,7 @@ public class RegistrationForm extends javax.swing.JFrame {
                     createAccountHeader.setText("Account successfully created! You may now log in...");
                 }
             }
-        } catch (InterruptedException ex) {
-            Logger.getLogger(RegistrationForm.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
+        } catch (InterruptedException | ExecutionException ex) {
             Logger.getLogger(RegistrationForm.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_registerButtonMouseClicked

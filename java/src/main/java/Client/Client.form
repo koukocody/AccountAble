@@ -4,6 +4,7 @@
   <NonVisualComponents>
     <Container class="javax.swing.JDialog" name="addGoalDialog">
       <Properties>
+        <Property name="defaultCloseOperation" type="int" value="2"/>
         <Property name="title" type="java.lang.String" value="Add to Savings Table"/>
         <Property name="iconImage" type="java.awt.Image" editor="org.netbeans.modules.form.ComponentChooserEditor">
           <ComponentRef name="null"/>
@@ -292,6 +293,175 @@
         </Container>
       </SubComponents>
     </Container>
+    <Container class="javax.swing.JDialog" name="addStockDialog">
+      <Properties>
+        <Property name="defaultCloseOperation" type="int" value="2"/>
+        <Property name="title" type="java.lang.String" value="Add to Stock Tracking"/>
+        <Property name="alwaysOnTop" type="boolean" value="true"/>
+        <Property name="iconImage" type="java.awt.Image" editor="org.netbeans.modules.form.ComponentChooserEditor">
+          <ComponentRef name="null"/>
+        </Property>
+        <Property name="size" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+          <Dimension value="[350, 430]"/>
+        </Property>
+        <Property name="type" type="java.awt.Window$Type" editor="org.netbeans.modules.form.editors.EnumEditor">
+          <Value id="POPUP"/>
+        </Property>
+      </Properties>
+      <AuxValues>
+        <AuxValue name="JavaCodeGenerator_InitCodePost" type="java.lang.String" value="addStockDialog.setLocation(new java.awt.Point(0, 0));&#xa;addStockDialog.setLocationRelativeTo(null);"/>
+      </AuxValues>
+
+      <Layout>
+        <DimensionLayout dim="0">
+          <Group type="103" groupAlignment="0" attributes="0">
+              <Component id="addStockPanel" alignment="0" max="32767" attributes="0"/>
+          </Group>
+        </DimensionLayout>
+        <DimensionLayout dim="1">
+          <Group type="103" groupAlignment="0" attributes="0">
+              <Component id="addStockPanel" min="-2" max="-2" attributes="0"/>
+          </Group>
+        </DimensionLayout>
+      </Layout>
+      <SubComponents>
+        <Container class="javax.swing.JPanel" name="addStockPanel">
+
+          <Layout>
+            <DimensionLayout dim="0">
+              <Group type="103" groupAlignment="0" attributes="0">
+                  <Group type="102" attributes="0">
+                      <Group type="103" groupAlignment="0" attributes="0">
+                          <Group type="102" attributes="0">
+                              <EmptySpace min="14" pref="14" max="-2" attributes="0"/>
+                              <Group type="103" groupAlignment="0" attributes="0">
+                                  <Component id="stockDialogTickerLabel" alignment="0" min="-2" max="-2" attributes="0"/>
+                                  <Component id="stockDialogSharesLabel" alignment="0" min="-2" max="-2" attributes="0"/>
+                              </Group>
+                              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                          </Group>
+                          <Group type="102" alignment="0" attributes="0">
+                              <EmptySpace max="-2" attributes="0"/>
+                              <Group type="103" groupAlignment="0" attributes="0">
+                                  <Component id="stockDialogDeleteButton" alignment="1" max="32767" attributes="0"/>
+                                  <Component id="stockDialogTickerTextField" max="32767" attributes="0"/>
+                                  <Component id="stockDialogSharesTextField" alignment="0" max="32767" attributes="0"/>
+                                  <Component id="stockDialogCostTextField" alignment="0" max="32767" attributes="0"/>
+                                  <Component id="stockDialogDateTextField" alignment="0" max="32767" attributes="0"/>
+                                  <Component id="stockDialogAddOrEditButton" alignment="0" max="32767" attributes="0"/>
+                                  <Group type="102" attributes="0">
+                                      <EmptySpace min="8" pref="8" max="-2" attributes="0"/>
+                                      <Group type="103" groupAlignment="0" attributes="0">
+                                          <Group type="102" alignment="0" attributes="0">
+                                              <Component id="stockDialogDateLabel" min="-2" max="-2" attributes="0"/>
+                                              <EmptySpace pref="147" max="32767" attributes="0"/>
+                                              <Component id="stockDialogDateFormatLabel" min="-2" max="-2" attributes="0"/>
+                                          </Group>
+                                          <Group type="102" alignment="0" attributes="0">
+                                              <Component id="stockDialogCostLabel" min="-2" max="-2" attributes="0"/>
+                                              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                                          </Group>
+                                      </Group>
+                                  </Group>
+                              </Group>
+                          </Group>
+                      </Group>
+                      <EmptySpace max="-2" attributes="0"/>
+                  </Group>
+              </Group>
+            </DimensionLayout>
+            <DimensionLayout dim="1">
+              <Group type="103" groupAlignment="0" attributes="0">
+                  <Group type="102" alignment="0" attributes="0">
+                      <EmptySpace min="-2" pref="17" max="-2" attributes="0"/>
+                      <Component id="stockDialogTickerLabel" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace max="-2" attributes="0"/>
+                      <Component id="stockDialogTickerTextField" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace type="separate" max="-2" attributes="0"/>
+                      <Component id="stockDialogSharesLabel" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace max="-2" attributes="0"/>
+                      <Component id="stockDialogSharesTextField" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace type="separate" max="-2" attributes="0"/>
+                      <Component id="stockDialogCostLabel" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace max="-2" attributes="0"/>
+                      <Component id="stockDialogCostTextField" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace type="separate" max="-2" attributes="0"/>
+                      <Group type="103" groupAlignment="3" attributes="0">
+                          <Component id="stockDialogDateLabel" alignment="3" min="-2" max="-2" attributes="0"/>
+                          <Component id="stockDialogDateFormatLabel" alignment="3" min="-2" max="-2" attributes="0"/>
+                      </Group>
+                      <EmptySpace max="-2" attributes="0"/>
+                      <Component id="stockDialogDateTextField" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace pref="35" max="32767" attributes="0"/>
+                      <Component id="stockDialogAddOrEditButton" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace type="unrelated" max="-2" attributes="0"/>
+                      <Component id="stockDialogDeleteButton" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace max="32767" attributes="0"/>
+                  </Group>
+              </Group>
+            </DimensionLayout>
+          </Layout>
+          <SubComponents>
+            <Component class="javax.swing.JLabel" name="stockDialogTickerLabel">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Stock Symbol (e.g TSLA, MSFT)"/>
+              </Properties>
+            </Component>
+            <Component class="javax.swing.JTextField" name="stockDialogTickerTextField">
+            </Component>
+            <Component class="javax.swing.JLabel" name="stockDialogSharesLabel">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Number of Shares"/>
+              </Properties>
+            </Component>
+            <Component class="javax.swing.JTextField" name="stockDialogSharesTextField">
+            </Component>
+            <Component class="javax.swing.JLabel" name="stockDialogCostLabel">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Cost per Share"/>
+              </Properties>
+            </Component>
+            <Component class="javax.swing.JTextField" name="stockDialogCostTextField">
+            </Component>
+            <Component class="javax.swing.JLabel" name="stockDialogDateLabel">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Initial Purchase Date"/>
+              </Properties>
+            </Component>
+            <Component class="javax.swing.JTextField" name="stockDialogDateTextField">
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="stockDialogDateTextFieldActionPerformed"/>
+              </Events>
+              <AuxValues>
+                <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new javax.swing.JFormattedTextField(dateFormat1)"/>
+                <AuxValue name="JavaCodeGenerator_CreateCodePre" type="java.lang.String" value="DateFormat dateFormat1 = new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);"/>
+              </AuxValues>
+            </Component>
+            <Component class="javax.swing.JLabel" name="stockDialogDateFormatLabel">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="YYYY-MM-DD"/>
+              </Properties>
+            </Component>
+            <Component class="javax.swing.JButton" name="stockDialogAddOrEditButton">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Add"/>
+              </Properties>
+              <Events>
+                <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="stockDialogAddOrEditButtonMouseClicked"/>
+              </Events>
+            </Component>
+            <Component class="javax.swing.JButton" name="stockDialogDeleteButton">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Delete"/>
+              </Properties>
+              <Events>
+                <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="stockDialogDeleteButtonMouseClicked"/>
+              </Events>
+            </Component>
+          </SubComponents>
+        </Container>
+      </SubComponents>
+    </Container>
   </NonVisualComponents>
   <Properties>
     <Property name="defaultCloseOperation" type="int" value="3"/>
@@ -320,9 +490,9 @@
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="1" attributes="0">
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="jLayeredPane2" min="-2" max="-2" attributes="0"/>
+              <Component id="accountableHeaderPanel" min="-2" max="-2" attributes="0"/>
               <EmptySpace pref="124" max="32767" attributes="0"/>
-              <Component id="jLayeredPane1" min="-2" pref="38" max="-2" attributes="0"/>
+              <Component id="closeAppPanel" min="-2" pref="38" max="-2" attributes="0"/>
           </Group>
           <Group type="103" rootIndex="1" groupAlignment="0" attributes="0">
               <Component id="masterTabPane" alignment="0" pref="1371" max="32767" attributes="0"/>
@@ -332,9 +502,9 @@
     <DimensionLayout dim="1">
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" attributes="0">
-              <Group type="103" groupAlignment="1" attributes="0">
-                  <Component id="jLayeredPane2" min="-2" max="-2" attributes="0"/>
-                  <Component id="jLayeredPane1" alignment="0" max="32767" attributes="0"/>
+              <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                  <Component id="accountableHeaderPanel" max="32767" attributes="0"/>
+                  <Component id="closeAppPanel" max="32767" attributes="0"/>
               </Group>
               <EmptySpace min="0" pref="698" max="32767" attributes="0"/>
           </Group>
@@ -1278,7 +1448,7 @@
                             <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
                               <Font name="Segoe UI" size="14" style="0"/>
                             </Property>
-                            <Property name="model" type="javax.swing.table.TableModel" editor="org.netbeans.modules.form.editors2.TableModelEditor" postCode="TableColumnModel colModel = goalsTable.getColumnModel();&#xa;&#xa;colModel.getColumn(1).setPreferredWidth(40);&#xa;colModel.getColumn(2).setPreferredWidth(40);&#xa;colModel.getColumn(3).setPreferredWidth(40);&#xa;colModel.getColumn(4).setPreferredWidth(10);&#xa;colModel.getColumn(5).setPreferredWidth(40);&#xa;&#xa;goalsTable.setIntercellSpacing(new java.awt.Dimension(0, 5));&#xa;goalsTable.setShowHorizontalLines(true);&#xa;goalsTable.getTableHeader().setReorderingAllowed(false);&#xa;goalsTable.setAutoCreateRowSorter(rootPaneCheckingEnabled);&#xa;goalsTable.getTableHeader().setReorderingAllowed(false);&#xa;goalsTable.setRowHeight(30);&#xa;goalsTable.setRowMargin(10);">
+                            <Property name="model" type="javax.swing.table.TableModel" editor="org.netbeans.modules.form.editors2.TableModelEditor" postCode="TableColumnModel colModel = goalsTable.getColumnModel();&#xa;&#xa;colModel.getColumn(1).setPreferredWidth(40);&#xa;colModel.getColumn(2).setPreferredWidth(40);&#xa;colModel.getColumn(3).setPreferredWidth(40);&#xa;colModel.getColumn(4).setPreferredWidth(40);&#xa;colModel.getColumn(5).setPreferredWidth(10);&#xa;&#xa;goalsTable.setIntercellSpacing(new java.awt.Dimension(0, 5));&#xa;goalsTable.setShowHorizontalLines(true);&#xa;goalsTable.getTableHeader().setReorderingAllowed(false);&#xa;goalsTable.setAutoCreateRowSorter(rootPaneCheckingEnabled);&#xa;goalsTable.getTableHeader().setReorderingAllowed(false);&#xa;goalsTable.setRowHeight(30);&#xa;goalsTable.setRowMargin(10);">
                               <Table columnCount="6" rowCount="0">
                                 <Column editable="true" title="Goal" type="java.lang.String"/>
                                 <Column editable="true" title="Saved" type="java.lang.Double"/>
@@ -1433,31 +1603,40 @@
           <Layout>
             <DimensionLayout dim="0">
               <Group type="103" groupAlignment="0" attributes="0">
-                  <EmptySpace min="0" pref="1241" max="32767" attributes="0"/>
-                  <Group type="103" rootIndex="1" groupAlignment="0" attributes="0">
-                      <Group type="102" alignment="0" attributes="0">
-                          <EmptySpace min="-2" pref="13" max="-2" attributes="0"/>
-                          <Component id="investmentsScrollPanel" max="32767" attributes="0"/>
-                          <EmptySpace min="-2" pref="13" max="-2" attributes="0"/>
+                  <Group type="102" alignment="0" attributes="0">
+                      <EmptySpace min="-2" pref="20" max="-2" attributes="0"/>
+                      <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                          <Component id="investmentsStockPanel" max="32767" attributes="0"/>
+                          <Component id="investmentsAccountScrollPanel" max="32767" attributes="0"/>
                       </Group>
+                      <EmptySpace type="separate" max="-2" attributes="0"/>
+                      <Component id="jPanel2" min="-2" pref="536" max="-2" attributes="0"/>
+                      <EmptySpace pref="46" max="32767" attributes="0"/>
                   </Group>
               </Group>
             </DimensionLayout>
             <DimensionLayout dim="1">
               <Group type="103" groupAlignment="0" attributes="0">
-                  <EmptySpace min="0" pref="698" max="32767" attributes="0"/>
-                  <Group type="103" rootIndex="1" groupAlignment="0" attributes="0">
-                      <Group type="102" alignment="0" attributes="0">
-                          <EmptySpace min="-2" pref="23" max="-2" attributes="0"/>
-                          <Component id="investmentsScrollPanel" pref="651" max="32767" attributes="0"/>
-                          <EmptySpace min="-2" pref="24" max="-2" attributes="0"/>
+                  <Group type="102" attributes="0">
+                      <Group type="103" groupAlignment="0" attributes="0">
+                          <Group type="102" alignment="0" attributes="0">
+                              <EmptySpace min="-2" pref="20" max="-2" attributes="0"/>
+                              <Component id="investmentsAccountScrollPanel" min="-2" pref="287" max="-2" attributes="0"/>
+                              <EmptySpace max="-2" attributes="0"/>
+                              <Component id="investmentsStockPanel" min="-2" max="-2" attributes="0"/>
+                          </Group>
+                          <Group type="102" alignment="0" attributes="0">
+                              <EmptySpace min="-2" pref="60" max="-2" attributes="0"/>
+                              <Component id="jPanel2" min="-2" pref="575" max="-2" attributes="0"/>
+                          </Group>
                       </Group>
+                      <EmptySpace pref="18" max="32767" attributes="0"/>
                   </Group>
               </Group>
             </DimensionLayout>
           </Layout>
           <SubComponents>
-            <Container class="javax.swing.JScrollPane" name="investmentsScrollPanel">
+            <Container class="javax.swing.JScrollPane" name="investmentsAccountScrollPanel">
               <Properties>
                 <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                   <Border info="null"/>
@@ -1466,7 +1645,7 @@
 
               <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
               <SubComponents>
-                <Container class="javax.swing.JPanel" name="investmentsPanel">
+                <Container class="javax.swing.JPanel" name="investmentsAccountPanel">
                   <Properties>
                     <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                       <Border info="org.netbeans.modules.form.compat2.border.EmptyBorderInfo">
@@ -1474,10 +1653,90 @@
                       </Border>
                     </Property>
                   </Properties>
+                  <AuxValues>
+                    <AuxValue name="JavaCodeGenerator_allCodePost" type="java.lang.String" value="investmentsAccountScrollPanel.getVerticalScrollBar().setUnitIncrement(16);"/>
+                  </AuxValues>
 
                   <Layout class="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout"/>
                 </Container>
               </SubComponents>
+            </Container>
+            <Container class="javax.swing.JPanel" name="investmentsStockPanel">
+
+              <Layout>
+                <DimensionLayout dim="0">
+                  <Group type="103" groupAlignment="0" attributes="0">
+                      <Group type="102" alignment="0" attributes="0">
+                          <EmptySpace min="-2" pref="15" max="-2" attributes="0"/>
+                          <Component id="investmentsPanelStockLabel" min="-2" max="-2" attributes="0"/>
+                          <EmptySpace type="separate" max="-2" attributes="0"/>
+                          <Component id="investmentsPanelAddStock" min="-2" pref="41" max="-2" attributes="0"/>
+                          <EmptySpace pref="463" max="32767" attributes="0"/>
+                      </Group>
+                      <Component id="investmentsDisplayStocksScrollPane" alignment="0" max="32767" attributes="0"/>
+                  </Group>
+                </DimensionLayout>
+                <DimensionLayout dim="1">
+                  <Group type="103" groupAlignment="0" attributes="0">
+                      <Group type="102" alignment="0" attributes="0">
+                          <Group type="103" groupAlignment="0" attributes="0">
+                              <Component id="investmentsPanelAddStock" min="-2" pref="35" max="-2" attributes="0"/>
+                              <Component id="investmentsPanelStockLabel" min="-2" max="-2" attributes="0"/>
+                          </Group>
+                          <EmptySpace max="-2" attributes="0"/>
+                          <Component id="investmentsDisplayStocksScrollPane" min="-2" pref="320" max="-2" attributes="0"/>
+                          <EmptySpace max="32767" attributes="0"/>
+                      </Group>
+                  </Group>
+                </DimensionLayout>
+              </Layout>
+              <SubComponents>
+                <Component class="javax.swing.JLabel" name="investmentsPanelStockLabel">
+                  <Properties>
+                    <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
+                      <Font name="Segoe UI" size="24" style="0"/>
+                    </Property>
+                    <Property name="text" type="java.lang.String" value="Stocks"/>
+                  </Properties>
+                </Component>
+                <Component class="javax.swing.JButton" name="investmentsPanelAddStock">
+                  <Properties>
+                    <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
+                      <Font name="Segoe UI" size="14" style="1"/>
+                    </Property>
+                    <Property name="text" type="java.lang.String" value="+"/>
+                    <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
+                      <Color id="Hand Cursor"/>
+                    </Property>
+                    <Property name="horizontalTextPosition" type="int" value="0"/>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="investmentsPanelAddStockMouseClicked"/>
+                  </Events>
+                </Component>
+                <Container class="javax.swing.JScrollPane" name="investmentsDisplayStocksScrollPane">
+                  <Properties>
+                    <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
+                      <Border info="null"/>
+                    </Property>
+                    <Property name="horizontalScrollBarPolicy" type="int" value="31"/>
+                    <Property name="horizontalScrollBar" type="javax.swing.JScrollBar" editor="org.netbeans.modules.form.ComponentChooserEditor">
+                      <ComponentRef name="null"/>
+                    </Property>
+                  </Properties>
+                  <AuxValues>
+                    <AuxValue name="JavaCodeGenerator_InitCodePost" type="java.lang.String" value="investmentsDisplayStocksScrollPane.getVerticalScrollBar().setUnitIncrement(16);"/>
+                  </AuxValues>
+
+                  <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
+                </Container>
+              </SubComponents>
+            </Container>
+            <Container class="javax.swing.JPanel" name="jPanel2">
+
+              <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout">
+                <Property name="axis" type="int" value="3"/>
+              </Layout>
             </Container>
           </SubComponents>
         </Container>
@@ -2002,62 +2261,110 @@
                       <SubComponents>
                         <Component class="javax.swing.JLabel" name="studentLabel1">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel1"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel2">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel2"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel3">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel3"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel4">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel4"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel5">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel5"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel6">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel6"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel7">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel7"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel8">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel8"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel9">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel9"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel10">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel10"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel11">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel11"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="studentLabel12">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel12"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                       </SubComponents>
@@ -2171,47 +2478,83 @@
                       <SubComponents>
                         <Component class="javax.swing.JLabel" name="mortgageLabel1">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel1"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel2">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel2"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel3">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel3"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel4">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel4"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel5">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel5"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel6">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="f5" green="f3" red="f2" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel6"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel7">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel7"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel8">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel8"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                         <Component class="javax.swing.JLabel" name="mortgageLabel9">
                           <Properties>
+                            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+                              <Color blue="e1" green="e1" red="e1" type="rgb"/>
+                            </Property>
                             <Property name="text" type="java.lang.String" value="jLabel9"/>
+                            <Property name="opaque" type="boolean" value="true"/>
                           </Properties>
                         </Component>
                       </SubComponents>
@@ -2224,7 +2567,7 @@
         </Container>
       </SubComponents>
     </Container>
-    <Container class="javax.swing.JLayeredPane" name="jLayeredPane1">
+    <Container class="javax.swing.JLayeredPane" name="closeAppPanel">
       <Properties>
         <Property name="maximumSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
           <Dimension value="[50, 50]"/>
@@ -2277,11 +2620,13 @@
           </Properties>
           <Events>
             <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="closeLabelMouseClicked"/>
+            <EventHandler event="mouseEntered" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="closeLabelMouseEntered"/>
+            <EventHandler event="mouseExited" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="closeLabelMouseExited"/>
           </Events>
         </Component>
       </SubComponents>
     </Container>
-    <Container class="javax.swing.JLayeredPane" name="jLayeredPane2">
+    <Container class="javax.swing.JLayeredPane" name="accountableHeaderPanel">
 
       <Layout>
         <DimensionLayout dim="0">
