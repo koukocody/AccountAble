@@ -23,7 +23,8 @@ public class InitializeFirestore {
     public static Firestore db;
     
     public static void initialize() throws FileNotFoundException, IOException{
-        InputStream serviceAccount = new FileInputStream("E:\\Capstone Project\\accountable-FB-key.json");
+        File currentDir = new File("");
+        InputStream serviceAccount = new FileInputStream(currentDir.getAbsolutePath() + "\\src\\main\\java\\com\\plaid\\accountable-FB-key.json");
         GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
         FirebaseOptions options = new FirebaseOptions.Builder()
             .setCredentials(credentials)
