@@ -38,6 +38,7 @@ the dashboard: https://dashboard.plaid.com/account/keys
 - Your environment variables populated in `.env`
 - [npm](https://www.npmjs.com/get-npm)
 - If using Windows, a command line utility capable of running basic Unix shell commands
+- Place your own Firestore key .json file location in line 28 of \AccountAble\java\src\main\java\com\plaid\InitializeFirestore.java
 
 #### Running the application
 
