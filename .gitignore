@@ -52,3 +52,4 @@ docker-compose.local*.yml
 
 #vscode
 .vscode
+/frontend/nbproject/private/
