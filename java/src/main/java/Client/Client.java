@@ -43,7 +43,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -110,6 +114,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
 import org.jfree.chart.renderer.category.StandardBarPainter;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
 import org.jfree.chart.title.TextTitle;
 import org.jfree.data.category.DefaultCategoryDataset;
@@ -117,6 +122,8 @@ import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.time.Day;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeries;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.HistoricalQuote;
@@ -609,7 +616,6 @@ public class Client extends javax.swing.JFrame {
         addStockDialog.setTitle("Add to Stock Tracking");
         addStockDialog.setAlwaysOnTop(true);
         addStockDialog.setIconImage(null);
-        addStockDialog.setPreferredSize(new java.awt.Dimension(350, 450));
         addStockDialog.setSize(new java.awt.Dimension(350, 430));
         addStockDialog.setType(java.awt.Window.Type.POPUP);
         addStockDialog.setLocation(new java.awt.Point(0, 0));
@@ -622,12 +628,6 @@ public class Client extends javax.swing.JFrame {
         stockDialogCostLabel.setText("Cost per Share");
 
         stockDialogDateLabel.setText("Initial Purchase Date");
-
-        stockDialogDateTextField.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stockDialogDateTextFieldActionPerformed(evt);
-            }
-        });
 
         stockDialogDateFormatLabel.setText("YYYY-MM-DD");
 
@@ -2281,10 +2281,6 @@ public class Client extends javax.swing.JFrame {
         parent.revalidate();
     }//GEN-LAST:event_closeLabelMouseExited
 
-    private void stockDialogDateTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stockDialogDateTextFieldActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_stockDialogDateTextFieldActionPerformed
-
     private void savingsTableAndGraphHistory() throws ParseException {
         // Allocate savings transactions
         for (Transaction transaction : transactionsList) {
@@ -3254,6 +3250,7 @@ public class Client extends javax.swing.JFrame {
     }
     
     private void stockPanelPopulation() throws InterruptedException, ExecutionException, IOException, ParseException {
+        // Uses stock API from https://financeapi.net/
         ApiFuture<QuerySnapshot> future = db.collection("users").document(QuickstartApplication.userID).collection("stocks").get();
         List<QueryDocumentSnapshot> stocks = new ArrayList <>();
         stocks = future.get().getDocuments();
@@ -3272,14 +3269,13 @@ public class Client extends javax.swing.JFrame {
             panel.setFocusable(true);
             panel.add(Box.createRigidArea(new Dimension(10,5)));
             
-            String[] symbols = new String[] {stock.getId()};
-            // Can also be done with explicit from, to and Interval parameters
-            Map<String, Stock> stocksGrab = YahooFinance.get(symbols, true);
-            Stock stockInfo = stocksGrab.get(stock.getId());
-            if (stockInfo == null) {
-                break;
-            }
-            BigDecimal currentStockPrice = stockInfo.getQuote().getPrice();
+            JSONObject objectJson = GetStockJSON.getInfo(stock.getId());
+            JSONObject response = objectJson.getJSONObject("quoteResponse");
+            JSONArray result = response.getJSONArray("result");
+            JSONObject entry = (JSONObject) result.get(0);
+            
+            Double currentStockPrice = (Double) entry.get("regularMarketPrice");
+            System.out.println(currentStockPrice);
             JLabel ticker = new javax.swing.JLabel(stock.getId() + " $" + df.format(currentStockPrice));
             ticker.setFont(new java.awt.Font("Segoe UI", 0, 24));
             panel.add(ticker);
@@ -3343,25 +3339,20 @@ public class Client extends javax.swing.JFrame {
             }          
             finishedPanel.add(panel, c);
             
-            
-            // Graph setup -- API calls are way too slow. can not include for now.
-            Calendar cal = Calendar.getInstance();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
-            cal.setTime(sdf.parse(stock.get("date").toString()));// all done
-            List<HistoricalQuote> fullHistory = stockInfo.getHistory(cal, Interval.WEEKLY);
-            
-            
+            JSONObject objHistory = GetStockJSON.getHistory(stock.getId());
+            JSONObject stockHistory = objHistory.getJSONObject(stock.getId());
+            JSONArray close = stockHistory.getJSONArray("close");
+         
             final TimeSeries s1 = new TimeSeries(stock.getId());
-            for (HistoricalQuote quote : fullHistory){
-                Calendar calendar = quote.getDate();
-                ZoneId zoneId = ZoneId.systemDefault();
-                Date date = calendar.getTime();
+            ZoneId zoneId = ZoneId.systemDefault();
+            for (int i = 0; i < close.length(); i++) {
+                Double chartPrice = (Double) close.get(i);
+                Date date = new Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7 * (close.length() - 1 - i)));
                 LocalDate ld = date.toInstant().atZone(zoneId).toLocalDate();
                 Day day = new Day(ld.getDayOfMonth(), ld.getMonthValue(), ld.getYear());
-                s1.add(day, Double.valueOf(quote.getClose().toString()));
+                s1.add(day, chartPrice);
             }
             dataset.addSeries(s1);
-            
         }
         
         JFreeChart chart = ChartFactory.createTimeSeriesChart("Stock Performance Over Time", null, "Amount (in USD)", dataset, true, true, false);
@@ -3370,6 +3361,8 @@ public class Client extends javax.swing.JFrame {
         XYPlot plot = (XYPlot) chart.getPlot();
         XYToolTipGenerator xyttg = new StandardXYToolTipGenerator(" {1}: {2} ", DateFormat.getDateInstance(), NumberFormat.getCurrencyInstance());
         plot.getRenderer().setDefaultToolTipGenerator(xyttg);
+        XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true,true);
+        renderer.setSeriesShape(0, new java.awt.Rectangle(0, 0, 1, 1));
         NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
         yAxis.setAutoRangeIncludesZero(true);
         ChartPanel chartPanel = new ChartPanel(chart); 

@@ -429,9 +429,6 @@
               </Properties>
             </Component>
             <Component class="javax.swing.JTextField" name="stockDialogDateTextField">
-              <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="stockDialogDateTextFieldActionPerformed"/>
-              </Events>
               <AuxValues>
                 <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new javax.swing.JFormattedTextField(dateFormat1)"/>
                 <AuxValue name="JavaCodeGenerator_CreateCodePre" type="java.lang.String" value="DateFormat dateFormat1 = new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);"/>
