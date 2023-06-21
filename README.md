@@ -1,5 +1,7 @@
 # AccountAble
 
+Demonstration video: [**demo**][youtube].
+
 The Plaid quickstart documentation can be found here: [**quickstart guide**][quickstart].
 
 ## 1. Clone the repository
@@ -52,4 +54,5 @@ In Sandbox, you can log in to any supported institution (except Capital One) usi
 
 
 [quickstart]: https://plaid.com/docs/quickstart
+[youtube]: https://youtu.be/BjjcTeJS4EA
 
